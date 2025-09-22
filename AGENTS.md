@@ -175,6 +175,7 @@ Concise conventions for contributing code and tests to this repo. Focus is on a 
 - Run tests: `rake test` (or `bundle exec rake test`).
 - Auto-correct style: `rubocop -A .` (or `bundle exec rubocop -A .`).
 - Fix any remaining RuboCop items; re-run `rake test` and `rubocop` until green.
+- If you add a new feature or public API, update `README.md` with usage and examples.
 
 ## Repo Quick Reference (Appendix)
 
@@ -195,6 +196,7 @@ Spec notes driving current validator behavior (from “Allgemeines”): require 
 - Don’t add license headers or banners.
 - Avoid inline code comments unless explicitly requested.
 - Use descriptive names; avoid one‑letter variables.
+- Prefer full-length, intent-revealing variable names; avoid abbreviations (e.g., `line_number` not `line_no`).
 
 ## Error/Warning Policy
 
