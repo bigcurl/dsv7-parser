@@ -15,7 +15,7 @@ Layout/LineLength:
 Metrics/BlockLength:
   Exclude:
     - 'Rakefile'
-    - 'spec/**/*'
+    - 'test/**/*'
 
 # Keep docs optional for small gems and tests
 Style/Documentation:
