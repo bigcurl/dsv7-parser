@@ -140,9 +140,14 @@ ensure
 end
 ```
 
-## Parser (Wettkampfdefinitionsliste)
+## Parser (Streaming: WKDL and VML)
 
-The parser currently provides a streaming API for Wettkampfdefinitionsliste (WKDL) files. It is tolerant and focuses on extracting elements efficiently; use the validator for strict checks.
+The parser provides a streaming API for two list types:
+
+- Wettkampfdefinitionsliste (WKDL): `Dsv7::Parser.parse_wettkampfdefinitionsliste(...)`
+- Vereinsmeldeliste (VML): `Dsv7::Parser.parse_vereinsmeldeliste(...)`
+
+It is tolerant and focuses on extracting elements efficiently; use the validator for strict checks.
 
 Key points:
 
@@ -151,7 +156,7 @@ Key points:
 - Strips inline comments `(* ... *)` and scrubs invalid UTF‑8 in lines.
 - Accepts UTF‑8 with or without BOM (validator will still report BOM as an error).
 
-Basic example (block style):
+Basic example (block style, WKDL):
 
 ```
 require 'dsv7/parser'
@@ -221,10 +226,30 @@ else
 end
 ```
 
+VML usage mirrors WKDL:
+
+```
+content = <<~DSV
+  FORMAT:Vereinsmeldeliste;7;
+  ERZEUGER:Soft;1.0;mail@example.com;
+  VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+  ABSCHNITT:1;01.01.2024;10:00;N;
+  WETTKAMPF:1;V;1;;100;F;GL;M;;;
+  VEREIN:Mein Verein;1234;17;GER;
+  ANSPRECHPARTNER:Beispiel, Alice;;;;;;;alice@example.com;
+  DATEIENDE
+DSV
+
+Dsv7::Parser.parse_vereinsmeldeliste(content) do |type, payload, line_number|
+  # same :format, :element, :end semantics
+end
+```
+
 Errors and edge cases:
 
 - Raises `Dsv7::Parser::Error` if the first effective line is not a `FORMAT` line.
-- Raises `Dsv7::Parser::Error` if the list type is not `Wettkampfdefinitionsliste`.
+- Raises `Dsv7::Parser::Error` if the list type does not match the parser method
+  (WKDL expects `Wettkampfdefinitionsliste`, VML expects `Vereinsmeldeliste`).
 - Stops at `DATEIENDE`. Whitespace/comments after `DATEIENDE` are ignored by the parser (validator permits only comments/whitespace after it).
 
 ## Development

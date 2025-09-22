@@ -21,7 +21,17 @@ module Dsv7
     # Note: This is a tolerant parser focused on streaming extraction, not validation.
     # It performs basic stripping of inline comments, BOM handling and UTF-8 scrubbing.
     def self.parse_wettkampfdefinitionsliste(input, &block)
-      enum = Enumerator.new { |y| stream_wkdl(input, y) }
+      enum = Enumerator.new { |y| stream_list(input, y, 'Wettkampfdefinitionsliste') }
+      return enum.each(&block) if block_given?
+
+      enum
+    end
+
+    # Streaming parser for Vereinsmeldeliste (VML).
+    # Same contract as parse_wettkampfdefinitionsliste, but expects
+    # FORMAT:Vereinsmeldeliste;7; as the first effective line.
+    def self.parse_vereinsmeldeliste(input, &block)
+      enum = Enumerator.new { |y| stream_list(input, y, 'Vereinsmeldeliste') }
       return enum.each(&block) if block_given?
 
       enum
@@ -38,12 +48,12 @@ module Dsv7
         raise ArgumentError, 'Unsupported input; pass IO, file path String, or content String'
       end
 
-      def stream_wkdl(input, emitter)
+      def stream_list(input, emitter, expected_list_type)
         state = { ln: 0, saw: false }
         io = prepare_io(input)
         each_content_line(io) do |content, ln|
           state[:ln] = ln
-          break if handle_first_or_emit?(content, ln, emitter, state)
+          break if handle_first_or_emit?(content, ln, emitter, state, expected_list_type)
         end
         emitter << [:end, nil, state[:ln]]
       end
@@ -67,32 +77,33 @@ module Dsv7
         end
       end
 
-      def handle_first_or_emit?(content, line_number, emitter, state)
+      def handle_first_or_emit?(content, line_number, emitter, state, expected_list_type)
         unless state[:saw]
-          lt, ver = parse_wkdl_format(content, line_number)
+          lt, ver = parse_format_expect(content, line_number, expected_list_type)
           emitter << [:format, { list_type: lt, version: ver }, line_number]
           state[:saw] = true
           return false
         end
         return true if content == 'DATEIENDE'
 
-        emit_wkdl_element(content, line_number, emitter)
+        emit_element(content, line_number, emitter)
         false
       end
 
-      def parse_wkdl_format(content, line_number)
+      def parse_format_expect(content, line_number, expected_list_type)
         m = Dsv7::Lex.parse_format(content)
         raise Error, "First non-empty line must be FORMAT (line #{line_number})" unless m
 
         list_type, version = m
-        unless list_type == 'Wettkampfdefinitionsliste'
-          raise Error, "Unsupported list type '#{list_type}' for WKDL parser"
+        unless list_type == expected_list_type
+          short = expected_list_type == 'Wettkampfdefinitionsliste' ? 'WKDL' : 'VML'
+          raise Error, "Unsupported list type '#{list_type}' for #{short} parser"
         end
 
         [list_type, version]
       end
 
-      def emit_wkdl_element(content, line_number, emitter)
+      def emit_element(content, line_number, emitter)
         pair = Dsv7::Lex.element(content)
         return unless pair
 
