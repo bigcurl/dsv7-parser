@@ -3,6 +3,19 @@
 Diese Datei stellt die strukturierte, bereinigte und vereinheitlichte Version der DSV7-Spezifikation dar.  
 Ziel ist die einfache Weiterverarbeitung in Parsern, Webanwendungen oder Dokumentationssystemen.
 
+## Allgemeines
+
+- Beschreibung: Standard für den Datenaustausch von Meldungen und Ergebnissen bei Schwimmwettkämpfen.
+- Vorherige Veröffentlichungen ungültig: true
+- Herausgeber: Deutscher Schwimm-Verband (DSV)
+- Format-Version: 7
+- Format-Bezeichnung: Format 7
+- Format-Datum: 2022-08
+- In Kraft ab: 2023-01-01
+- Format 6 gültig bis: 2023-07-31
+- Format 7 alleinig ab: 2023-08-01
+- Dokument-Stand: 2022-08-31
+
 ## Grundregeln für Daten
 - Trennzeichen zwischen Attributen ist `;`
 - UTF-8 (ohne BOM)

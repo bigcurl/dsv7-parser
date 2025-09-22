@@ -69,4 +69,10 @@ class Dsv7ValidatorTest < Minitest::Test
     result = validate_string(content)
     assert_includes result.errors, "Missing 'DATEIENDE' terminator line"
   end
+
+  def test_no_effective_content_allowed_after_dateiende
+    content = "#{format_line}\nDATEIENDE\nDATA;after\n"
+    result = validate_string(content)
+    assert_includes result.errors, "Content found after 'DATEIENDE' (line 3)"
+  end
 end
