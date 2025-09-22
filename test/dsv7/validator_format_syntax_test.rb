@@ -8,8 +8,32 @@ class Dsv7ValidatorFormatSyntaxTest < Minitest::Test
     Dsv7::Validator.validate(content)
   end
 
-  def format_line(type = 'Wettkampfdefinitionsliste', version = '7')
+  def format_line(type = 'Vereinsmeldeliste', version = '7')
     "FORMAT:#{type};#{version};"
+  end
+
+  def wk_minimal
+    <<~DSV
+      FORMAT:Wettkampfdefinitionsliste;7;
+      ERZEUGER:Soft;1.0;mail@example.com;
+      VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+      VERANSTALTUNGSORT:Schwimmstadion Duisburg-Wedau;Margaretenstr. 11;47055;Duisburg;GER;09999/11111;Kein Fax;;
+      AUSSCHREIBUNGIMNETZ:;
+      VERANSTALTER:Club;
+      AUSRICHTER:SC Duisburg;Biene, Petra;Wabenstr. 69;47055;Duisburg;GER;0888/22222;0888/22223;PetraBiene@GibtsNicht.de;
+      MELDEADRESSE:Kontakt;;;;;;;kontakt@example.com;
+      MELDESCHLUSS:01.01.2024;12:00;
+      ABSCHNITT:1;01.01.2024;;;10:00;;
+      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      MELDEGELD:EINZELMELDEGELD;2,00;;
+      DATEIENDE
+    DSV
+  end
+
+  def content_for_type(type)
+    return wk_minimal if type == 'Wettkampfdefinitionsliste'
+
+    "#{format_line(type)}\nDATA;ok\nDATEIENDE\n"
   end
 
   def test_all_allowed_list_types_accept
@@ -18,8 +42,7 @@ class Dsv7ValidatorFormatSyntaxTest < Minitest::Test
       Wettkampfergebnisliste Vereinsergebnisliste
     ]
     types.each do |type|
-      content = "#{format_line(type)}\nDATA;ok\nDATEIENDE\n"
-      result = validate_string(content)
+      result = validate_string(content_for_type(type))
       assert result.valid?, "Expected valid for #{type}: #{result.errors.inspect}"
     end
   end

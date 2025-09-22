@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'date'
+
 module Dsv7
   class Validator
     # Core pipeline for validator: encoding + line parsing
@@ -7,6 +9,7 @@ module Dsv7
       def initialize(result, filename)
         @result = result
         @filename = filename
+        @element_counts = Hash.new(0)
       end
 
       def call_io(io)
@@ -76,6 +79,8 @@ module Dsv7
         @format_line_index = nil
         @dateiende_index = nil
         @after_dateiende_effective_line_no = nil
+        @wk_elements = Hash.new(0)
+        @wk_schema = WkSchema.new(@result)
       end
 
       def process_line(line, line_no)
@@ -90,10 +95,13 @@ module Dsv7
 
         @after_dateiende_effective_line_no ||= line_no if @dateiende_index
         require_semicolon(trimmed, line_no)
+        track_wk_element(trimmed)
+        validate_wk_line(trimmed, line_no)
       end
 
       def finish
         post_validate_positions
+        validate_wk_list_elements if @result.list_type == 'Wettkampfdefinitionsliste'
       end
 
       private
@@ -148,6 +156,389 @@ module Dsv7
         return line unless line.include?('(*') && line.include?('*)')
 
         line.gsub(/\(\*.*?\*\)/, '')
+      end
+
+      def track_wk_element(trimmed)
+        return unless @result.list_type == 'Wettkampfdefinitionsliste'
+        return unless trimmed.include?(':')
+
+        name = trimmed.split(':', 2).first.strip
+        return if name == 'FORMAT'
+        return if name == 'DATEIENDE'
+
+        @wk_elements[name] += 1
+      end
+
+      def validate_wk_list_elements
+        WkCardinality.new(@result, @wk_elements).validate!
+      end
+
+      def validate_wk_line(trimmed, line_no)
+        return unless @result.list_type == 'Wettkampfdefinitionsliste'
+        return unless trimmed.include?(':')
+
+        name, rest = trimmed.split(':', 2)
+        return if %w[FORMAT DATEIENDE].include?(name)
+
+        attrs = rest.split(';', -1)
+        attrs.pop if attrs.last == ''
+        @wk_schema.validate_element(name, attrs, line_no)
+      end
+    end
+
+    # Validates Wettkampfdefinitionsliste element cardinalities
+    class WkCardinality
+      def initialize(result, wk_elements)
+        @result = result
+        @wk_elements = wk_elements
+      end
+
+      def validate!
+        require_exactly_one(
+          %w[ERZEUGER VERANSTALTUNG VERANSTALTUNGSORT AUSSCHREIBUNGIMNETZ
+             VERANSTALTER AUSRICHTER MELDEADRESSE MELDESCHLUSS]
+        )
+        forbid_more_than_one(%w[BANKVERBINDUNG BESONDERES NACHWEIS])
+        require_at_least_one(%w[ABSCHNITT WETTKAMPF MELDEGELD])
+      end
+
+      private
+
+      def require_exactly_one(elements)
+        elements.each do |el|
+          count = @wk_elements[el]
+          if count.zero?
+            @result.add_error("Wettkampfdefinitionsliste: missing required element '#{el}'")
+          elsif count != 1
+            @result.add_error(
+              "Wettkampfdefinitionsliste: element '#{el}' occurs #{count} times (expected 1)"
+            )
+          end
+        end
+      end
+
+      def forbid_more_than_one(elements)
+        elements.each do |el|
+          count = @wk_elements[el]
+          next if count <= 1
+
+          @result.add_error(
+            "Wettkampfdefinitionsliste: element '#{el}' occurs #{count} times (max 1)"
+          )
+        end
+      end
+
+      def require_at_least_one(elements)
+        elements.each do |el|
+          count = @wk_elements[el]
+          next if count >= 1
+
+          @result.add_error("Wettkampfdefinitionsliste: missing required element '#{el}'")
+        end
+      end
+    end
+
+    # Type-check and schema helpers for WKDL
+    module WkTypeChecks
+      def check_zk(_name, _index, _val, _line_no, _opts = nil)
+        # any string (already UTF-8 scrubbed); nothing to do
+      end
+
+      def check_zahl(name, idx, val, line_no, _opts = nil)
+        return if val.match?(/^\d+$/)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_no})"
+        )
+      end
+
+      def check_datum(name, idx, val, line_no, _opts = nil)
+        unless val.match?(/^\d{2}\.\d{2}\.\d{4}$/)
+          return add_err(
+            "Element #{name}, attribute #{idx}: invalid Datum '#{val}' " \
+            "(expected TT.MM.JJJJ) on line #{line_no}"
+          )
+        end
+
+        Date.strptime(val, '%d.%m.%Y')
+      rescue ArgumentError
+        add_err("Element #{name}, attribute #{idx}: impossible date '#{val}' on line #{line_no}")
+      end
+
+      def check_uhrzeit(name, idx, val, line_no, _opts = nil)
+        unless val.match?(/^\d{2}:\d{2}$/)
+          return add_err(
+            "Element #{name}, attribute #{idx}: invalid Uhrzeit '#{val}' " \
+            "(expected HH:MM) on line #{line_no}"
+          )
+        end
+
+        hh, mm = val.split(':').map(&:to_i)
+        return if (0..23).cover?(hh) && (0..59).cover?(mm)
+
+        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_no}")
+      end
+
+      def check_zeit(name, idx, val, line_no, _opts = nil)
+        unless val.match?(/^\d{2}:\d{2}:\d{2},\d{2}$/)
+          return add_err(
+            "Element #{name}, attribute #{idx}: invalid Zeit '#{val}' " \
+            "(expected HH:MM:SS,hh) on line #{line_no}"
+          )
+        end
+
+        h, m, s_hh = val.split(':')
+        s, hh = s_hh.split(',')
+        h = h.to_i
+        m = m.to_i
+        s = s.to_i
+        hh = hh.to_i
+        return if (0..23).cover?(h) && (0..59).cover?(m) && (0..59).cover?(s) && (0..99).cover?(hh)
+
+        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_no}")
+      end
+
+      def check_betrag(name, idx, val, line_no, _opts = nil)
+        return if val.match?(/^\d+,\d{2}$/)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Betrag '#{val}' (expected x,yy) on line #{line_no}"
+        )
+      end
+
+      def check_bahnl(name, idx, val, line_no, _opts = nil)
+        allowed = %w[16 20 25 33 50 FW X]
+        return if allowed.include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
+          "#{allowed.join(', ')}) on line #{line_no}"
+        )
+      end
+
+      def check_zeitmessung(name, idx, val, line_no, _opts = nil)
+        allowed = %w[HANDZEIT AUTOMATISCH HALBAUTOMATISCH]
+        return if allowed.include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Zeitmessung '#{val}' (allowed: " \
+          "#{allowed.join(', ')}) on line #{line_no}"
+        )
+      end
+
+      def check_land(name, idx, val, line_no, _opts = nil)
+        return if val.match?(/^[A-Z]{3}$/)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Land '#{val}' (expected FINA code, e.g., GER) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_nachweis_bahn(name, idx, val, line_no, _opts = nil)
+        allowed = %w[25 50 FW AL]
+        return if allowed.include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
+          "#{allowed.join(', ')}) on line #{line_no}"
+        )
+      end
+
+      def check_relativ(name, idx, val, line_no, _opts = nil)
+        return if %w[J N].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Relative Angabe '#{val}' (allowed: J, N) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_wk_art(name, idx, val, line_no, _opts = nil)
+        return if %w[V Z F E].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' (allowed: V, Z, F, E) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_einzelstrecke(name, idx, val, line_no, _opts = nil)
+        unless val.match?(/^\d+$/)
+          return add_err(
+            "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_no})"
+          )
+        end
+
+        n = val.to_i
+        return if n.zero? || (1..25_000).cover?(n)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: Einzelstrecke out of range '#{val}' " \
+          "(allowed 1..25000 or 0) on line #{line_no}"
+        )
+      end
+
+      def check_technik(name, idx, val, line_no, _opts = nil)
+        return if %w[F R B S L X].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Technik '#{val}' (allowed: F, R, B, S, L, X) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_ausuebung(name, idx, val, line_no, _opts = nil)
+        return if %w[GL BE AR ST WE GB X].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Ausübung '#{val}' (allowed: GL, BE, AR, ST, WE, GB, X) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_geschlecht_wk(name, idx, val, line_no, _opts = nil)
+        return if %w[M W X].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, X) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_bestenliste(name, idx, val, line_no, _opts = nil)
+        return if %w[SW EW PA MS KG XX].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Zuordnung '#{val}' (allowed: SW, EW, PA, MS, KG, XX) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_wert_typ(name, idx, val, line_no, _opts = nil)
+        return if %w[JG AK].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Wertungstyp '#{val}' (allowed: JG, AK) on line #{line_no}"
+        )
+      end
+
+      def check_jgak(name, idx, val, line_no, _opts = nil)
+        return if val.match?(/^\d{1,4}$/) || val.match?(/^[ABCDEJ]$/) || val.match?(/^\d{2,3}\+$/)
+
+        add_err("Element #{name}, attribute #{idx}: invalid JG/AK '#{val}' on line #{line_no}")
+      end
+
+      def check_geschlecht_erw(name, idx, val, line_no, _opts = nil)
+        return if %w[M W X D].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, X, D) " \
+          "on line #{line_no}"
+        )
+      end
+
+      def check_geschlecht_pf(name, idx, val, line_no, _opts = nil)
+        return if %w[M W D].include?(val)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, D) on line #{line_no}"
+        )
+      end
+
+      def check_meldegeld_typ(name, idx, val, line_no, _opts = nil)
+        allowed = %w[MELDEGELDPAUSCHALE EINZELMELDEGELD STAFFELMELDEGELD WKMELDEGELD
+                     MANNSCHAFTMELDEGELD]
+        return if allowed.include?(val.upcase)
+
+        add_err(
+          "Element #{name}, attribute #{idx}: invalid Meldegeld Typ '#{val}' on line #{line_no}"
+        )
+      end
+    end
+
+    # Validates Wettkampfdefinitionsliste attribute counts and datatypes
+    class WkSchema
+      include WkTypeChecks
+
+      SCHEMAS = {
+        'ERZEUGER' => [[:zk, true], [:zk, true], [:zk, true]],
+        'VERANSTALTUNG' => [[:zk, true], [:zk, true], [:bahnl, true], [:zeitmessung, true]],
+        'VERANSTALTUNGSORT' => [
+          [:zk,
+           true], [:zk, false], [:zk, false], [:zk, true], [:land, true], [:zk, false], [:zk, false], [:zk, false]
+        ],
+        'AUSSCHREIBUNGIMNETZ' => [[:zk, false]],
+        'VERANSTALTER' => [[:zk, true]],
+        'AUSRICHTER' => [
+          [:zk,
+           true], [:zk, true], [:zk, false], [:zk, false], [:zk, false], [:land, false], [:zk, false], [:zk, false], [:zk, true]
+        ],
+        'MELDEADRESSE' => [
+          [:zk,
+           true], [:zk, false], [:zk, false], [:zk, false], [:land, false], [:zk, false], [:zk, false], [:zk, true]
+        ],
+        'MELDESCHLUSS' => [[:datum, true], [:uhrzeit, true]],
+        'BANKVERBINDUNG' => [[:zk, false], [:zk, true], [:zk, false]],
+        'BESONDERES' => [[:zk, true]],
+        'NACHWEIS' => [[:datum, true], [:datum, false], [:nachweis_bahn, true]],
+        'ABSCHNITT' => [[:zahl, true], [:datum, true], [:uhrzeit, false], [:uhrzeit, false],
+                        [:uhrzeit, true], [:relativ, false]],
+        'WETTKAMPF' => [
+          [:zahl, true], [:wk_art, true], [:zahl, true], [:zahl, false], [:einzelstrecke, true],
+          [:technik, true], [:ausuebung, true], [:geschlecht_wk, true], [:bestenliste, true], [:zahl, false], [:wk_art, false]
+        ],
+        # Intentionally omitting WERTUNG and PFLICHTZEIT for now due to spec inconsistencies in examples
+        'MELDEGELD' => [[:meldegeld_typ, true], [:betrag, true], [:zahl, false]]
+      }.freeze
+
+      def initialize(result)
+        @result = result
+      end
+
+      def validate_element(name, attrs, line_no)
+        schema = SCHEMAS[name]
+        return unless schema
+
+        check_count(name, attrs, schema.length, line_no)
+        schema.each_with_index do |spec, i|
+          type, required, opts = spec
+          val = attrs[i]
+          if (val.nil? || val.empty?) && required
+            add_err("Element #{name}: missing required attribute #{i + 1} on line #{line_no}")
+            next
+          end
+          next if val.nil? || val.empty?
+
+          send("check_#{type}", name, i + 1, val, line_no, opts)
+        end
+
+        validate_cross_rules(name, attrs, line_no)
+      end
+
+      private
+
+      def add_err(msg)
+        @result.add_error(msg)
+      end
+
+      def check_count(name, attrs, expected, line_no)
+        got = attrs.length
+        return if got == expected
+
+        add_err("Element #{name}: expected #{expected} attributes, got #{got} (line #{line_no})")
+      end
+
+      def validate_cross_rules(name, attrs, line_no)
+        return unless name == 'MELDEGELD'
+
+        type_str = attrs[0].to_s.upcase
+        needs_wk = type_str == 'WKMELDEGELD' && (attrs[2].nil? || attrs[2].empty?)
+        return unless needs_wk
+
+        add_err(
+          "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line #{line_no}"
+        )
       end
     end
   end

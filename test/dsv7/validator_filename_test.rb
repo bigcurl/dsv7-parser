@@ -9,17 +9,41 @@ class Dsv7ValidatorFilenameTest < Minitest::Test
     FileUtils.mkdir_p('tmp')
   end
 
-  def format_line(type = 'Wettkampfdefinitionsliste', version = '7')
+  def format_line(type = 'Vereinsmeldeliste', version = '7')
     "FORMAT:#{type};#{version};"
   end
 
+  def wettkampfdefinitionsliste_minimal
+    <<~DSV
+      FORMAT:Wettkampfdefinitionsliste;7;
+      ERZEUGER:Soft;1.0;mail@example.com;
+      VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+      VERANSTALTUNGSORT:Schwimmstadion Duisburg-Wedau;Margaretenstr. 11;47055;Duisburg;GER;09999/11111;Kein Fax;;
+      AUSSCHREIBUNGIMNETZ:;
+      VERANSTALTER:Club;
+      AUSRICHTER:SC Duisburg;Biene, Petra;Wabenstr. 69;47055;Duisburg;GER;0888/22222;0888/22223;PetraBiene@GibtsNicht.de;
+      MELDEADRESSE:Kontakt;;;;;;;kontakt@example.com;
+      MELDESCHLUSS:01.01.2024;12:00;
+      ABSCHNITT:1;01.01.2024;;;10:00;;
+      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      MELDEGELD:EINZELMELDEGELD;2,00;;
+      DATEIENDE
+    DSV
+  end
+
   def assert_filename_ok(path, list_type)
-    File.write(path, "FORMAT:#{list_type};7;\nDATEIENDE\n")
+    File.write(path, content_for_type(list_type))
     result = Dsv7::Validator.validate(path)
     assert_empty result.warnings, "Expected no filename warnings for #{File.basename(path)}"
     assert result.valid?
   ensure
     FileUtils.rm_f(path)
+  end
+
+  def content_for_type(list_type)
+    return wettkampfdefinitionsliste_minimal if list_type == 'Wettkampfdefinitionsliste'
+
+    "FORMAT:#{list_type};7;\nDATEIENDE\n"
   end
 
   def test_filename_pattern_warning
@@ -35,7 +59,7 @@ class Dsv7ValidatorFilenameTest < Minitest::Test
 
   def test_filename_pattern_conforming_has_no_warning
     path = 'tmp/2025-09-22-Berlin-Wk.DSV7'
-    File.write(path, "#{format_line}\nDATEIENDE\n")
+    File.write(path, wettkampfdefinitionsliste_minimal)
     result = Dsv7::Validator.validate(path)
     assert_empty result.warnings
     assert result.valid?
