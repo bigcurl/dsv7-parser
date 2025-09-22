@@ -1,0 +1,22 @@
+# Starter RuboCop configuration
+
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'bin/*'
+    - 'pkg/**/*'
+    - 'tmp/**/*'
+    - 'vendor/**/*'
+
+Layout/LineLength:
+  Max: 100
+
+Metrics/BlockLength:
+  Exclude:
+    - 'Rakefile'
+    - 'spec/**/*'
+
+# Keep docs optional for small gems and tests
+Style/Documentation:
+  Enabled: false
