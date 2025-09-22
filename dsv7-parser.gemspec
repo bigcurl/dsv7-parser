@@ -5,12 +5,12 @@ require_relative 'lib/dsv7/parser/version'
 Gem::Specification.new do |spec|
   spec.name          = 'dsv7-parser'
   spec.version       = Dsv7::Parser::VERSION
-  spec.authors       = ['dsv7-parser authors']
-  spec.email         = ['devnull@example.com']
+  spec.authors       = ['bigcurl']
+  spec.email         = ['maintheme@gmail.com']
 
   spec.summary       = 'SAX parser for the DSV7 swim file format'
-  spec.description   = 'Ruby gem skeleton for a DSV7 SAX parser.'
-  spec.homepage      = 'https://example.com/dsv7-parser'
+  spec.description   = 'Ruby gem for a DSV7 SAX parser.'
+  spec.homepage      = 'https://github.com/bigcurl/dsv7-parser'
   spec.license       = 'MIT'
 
   spec.required_ruby_version = Gem::Requirement.new('>= 2.7.0')
