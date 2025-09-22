@@ -43,7 +43,7 @@ module Dsv7
 
       def process_lines(io)
         analyzer = LineAnalyzer.new(@result)
-        had_crlf = iterate(io) { |line, no| analyzer.process_line(line, no) }
+        had_crlf = iterate(io) { |line, line_number| analyzer.process_line(line, line_number) }
         @result.add_warning('CRLF line endings detected') if had_crlf
         analyzer.finish
         check_filename(@filename)
@@ -52,11 +52,11 @@ module Dsv7
 
       def iterate(io)
         had_crlf = false
-        line_no = 0
+        line_number = 0
         io.each_line("\n") do |raw_line|
-          line_no += 1
+          line_number += 1
           had_crlf ||= raw_line.end_with?("\r\n")
-          yield sanitize_line(raw_line), line_no
+          yield sanitize_line(raw_line), line_number
         end
         had_crlf
       end
@@ -78,25 +78,25 @@ module Dsv7
         @effective_index = 0
         @format_line_index = nil
         @dateiende_index = nil
-        @after_dateiende_effective_line_no = nil
+        @after_dateiende_effective_line_number = nil
         @wk_elements = Hash.new(0)
         @wk_schema = WkSchema.new(@result)
       end
 
-      def process_line(line, line_no)
-        check_comment_balance(line, line_no)
+      def process_line(line, line_number)
+        check_comment_balance(line, line_number)
         trimmed = strip_inline_comment(line)
         return if trimmed.empty?
 
         @effective_index += 1
-        return handle_first_effective(trimmed, line_no) if @effective_index == 1
+        return handle_first_effective(trimmed, line_number) if @effective_index == 1
 
-        return @dateiende_index = line_no if trimmed == 'DATEIENDE'
+        return @dateiende_index = line_number if trimmed == 'DATEIENDE'
 
-        @after_dateiende_effective_line_no ||= line_no if @dateiende_index
-        require_semicolon(trimmed, line_no)
+        @after_dateiende_effective_line_number ||= line_number if @dateiende_index
+        require_semicolon(trimmed, line_number)
         track_wk_element(trimmed)
-        validate_wk_line(trimmed, line_no)
+        validate_wk_line(trimmed, line_number)
       end
 
       def finish
@@ -106,28 +106,28 @@ module Dsv7
 
       private
 
-      def check_comment_balance(line, line_no)
+      def check_comment_balance(line, line_number)
         return unless line.include?('(*') || line.include?('*)')
 
         opens = line.scan('(*').size
         closes = line.scan('*)').size
         return unless opens != closes
 
-        @result.add_error("Unmatched comment delimiters on line #{line_no}")
+        @result.add_error("Unmatched comment delimiters on line #{line_number}")
       end
 
-      def handle_first_effective(trimmed, line_no)
-        @format_line_index = line_no
-        check_format_line(trimmed, line_no)
+      def handle_first_effective(trimmed, line_number)
+        @format_line_index = line_number
+        check_format_line(trimmed, line_number)
       end
 
       def strip_inline_comment(line)
         remove_inline_comments(line).strip
       end
 
-      def check_format_line(trimmed, line_no)
+      def check_format_line(trimmed, line_number)
         m = trimmed.match(/^FORMAT:([^;]+);(\d+);$/)
-        msg = "First non-empty line must be 'FORMAT:<Listentyp>;7;' (line #{line_no})"
+        msg = "First non-empty line must be 'FORMAT:<Listentyp>;7;' (line #{line_number})"
         return @result.add_error(msg) unless m
 
         @result.set_format(lt = m[1], m[2])
@@ -136,19 +136,19 @@ module Dsv7
         @result.add_error("Unsupported format version '#{m[2]}', expected '7'") unless m[2] == '7'
       end
 
-      def require_semicolon(trimmed, line_no)
+      def require_semicolon(trimmed, line_number)
         return if trimmed.include?(';')
 
-        @result.add_error("Missing attribute delimiter ';' on line #{line_no}")
+        @result.add_error("Missing attribute delimiter ';' on line #{line_number}")
       end
 
       def post_validate_positions
         @result.add_error('Missing FORMAT line at top of file') if @format_line_index.nil?
         return @result.add_error("Missing 'DATEIENDE' terminator line") if @dateiende_index.nil?
 
-        return unless @after_dateiende_effective_line_no
+        return unless @after_dateiende_effective_line_number
 
-        n = @after_dateiende_effective_line_no
+        n = @after_dateiende_effective_line_number
         @result.add_error("Content found after 'DATEIENDE' (line #{n})")
       end
 
@@ -173,7 +173,7 @@ module Dsv7
         WkCardinality.new(@result, @wk_elements).validate!
       end
 
-      def validate_wk_line(trimmed, line_no)
+      def validate_wk_line(trimmed, line_number)
         return unless @result.list_type == 'Wettkampfdefinitionsliste'
         return unless trimmed.include?(':')
 
@@ -182,7 +182,7 @@ module Dsv7
 
         attrs = rest.split(';', -1)
         attrs.pop if attrs.last == ''
-        @wk_schema.validate_element(name, attrs, line_no)
+        @wk_schema.validate_element(name, attrs, line_number)
       end
     end
 
@@ -240,50 +240,50 @@ module Dsv7
 
     # Type-check and schema helpers for WKDL
     module WkTypeChecks
-      def check_zk(_name, _index, _val, _line_no, _opts = nil)
+      def check_zk(_name, _index, _val, _line_number, _opts = nil)
         # any string (already UTF-8 scrubbed); nothing to do
       end
 
-      def check_zahl(name, idx, val, line_no, _opts = nil)
+      def check_zahl(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^\d+$/)
 
         add_err(
-          "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_no})"
+          "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_number})"
         )
       end
 
-      def check_datum(name, idx, val, line_no, _opts = nil)
+      def check_datum(name, idx, val, line_number, _opts = nil)
         unless val.match?(/^\d{2}\.\d{2}\.\d{4}$/)
           return add_err(
             "Element #{name}, attribute #{idx}: invalid Datum '#{val}' " \
-            "(expected TT.MM.JJJJ) on line #{line_no}"
+            "(expected TT.MM.JJJJ) on line #{line_number}"
           )
         end
 
         Date.strptime(val, '%d.%m.%Y')
       rescue ArgumentError
-        add_err("Element #{name}, attribute #{idx}: impossible date '#{val}' on line #{line_no}")
+        add_err("Element #{name}, attribute #{idx}: impossible date '#{val}' on line #{line_number}")
       end
 
-      def check_uhrzeit(name, idx, val, line_no, _opts = nil)
+      def check_uhrzeit(name, idx, val, line_number, _opts = nil)
         unless val.match?(/^\d{2}:\d{2}$/)
           return add_err(
             "Element #{name}, attribute #{idx}: invalid Uhrzeit '#{val}' " \
-            "(expected HH:MM) on line #{line_no}"
+            "(expected HH:MM) on line #{line_number}"
           )
         end
 
         hh, mm = val.split(':').map(&:to_i)
         return if (0..23).cover?(hh) && (0..59).cover?(mm)
 
-        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_no}")
+        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_number}")
       end
 
-      def check_zeit(name, idx, val, line_no, _opts = nil)
+      def check_zeit(name, idx, val, line_number, _opts = nil)
         unless val.match?(/^\d{2}:\d{2}:\d{2},\d{2}$/)
           return add_err(
             "Element #{name}, attribute #{idx}: invalid Zeit '#{val}' " \
-            "(expected HH:MM:SS,hh) on line #{line_no}"
+            "(expected HH:MM:SS,hh) on line #{line_number}"
           )
         end
 
@@ -295,78 +295,78 @@ module Dsv7
         hh = hh.to_i
         return if (0..23).cover?(h) && (0..59).cover?(m) && (0..59).cover?(s) && (0..99).cover?(hh)
 
-        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_no}")
+        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_number}")
       end
 
-      def check_betrag(name, idx, val, line_no, _opts = nil)
+      def check_betrag(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^\d+,\d{2}$/)
 
         add_err(
-          "Element #{name}, attribute #{idx}: invalid Betrag '#{val}' (expected x,yy) on line #{line_no}"
+          "Element #{name}, attribute #{idx}: invalid Betrag '#{val}' (expected x,yy) on line #{line_number}"
         )
       end
 
-      def check_bahnl(name, idx, val, line_no, _opts = nil)
+      def check_bahnl(name, idx, val, line_number, _opts = nil)
         allowed = %w[16 20 25 33 50 FW X]
         return if allowed.include?(val)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
-          "#{allowed.join(', ')}) on line #{line_no}"
+          "#{allowed.join(', ')}) on line #{line_number}"
         )
       end
 
-      def check_zeitmessung(name, idx, val, line_no, _opts = nil)
+      def check_zeitmessung(name, idx, val, line_number, _opts = nil)
         allowed = %w[HANDZEIT AUTOMATISCH HALBAUTOMATISCH]
         return if allowed.include?(val)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Zeitmessung '#{val}' (allowed: " \
-          "#{allowed.join(', ')}) on line #{line_no}"
+          "#{allowed.join(', ')}) on line #{line_number}"
         )
       end
 
-      def check_land(name, idx, val, line_no, _opts = nil)
+      def check_land(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^[A-Z]{3}$/)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Land '#{val}' (expected FINA code, e.g., GER) " \
-          "on line #{line_no}"
+          "on line #{line_number}"
         )
       end
 
-      def check_nachweis_bahn(name, idx, val, line_no, _opts = nil)
+      def check_nachweis_bahn(name, idx, val, line_number, _opts = nil)
         allowed = %w[25 50 FW AL]
         return if allowed.include?(val)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
-          "#{allowed.join(', ')}) on line #{line_no}"
+          "#{allowed.join(', ')}) on line #{line_number}"
         )
       end
 
-      def check_relativ(name, idx, val, line_no, _opts = nil)
+      def check_relativ(name, idx, val, line_number, _opts = nil)
         return if %w[J N].include?(val)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Relative Angabe '#{val}' (allowed: J, N) " \
-          "on line #{line_no}"
+          "on line #{line_number}"
         )
       end
 
-      def check_wk_art(name, idx, val, line_no, _opts = nil)
+      def check_wk_art(name, idx, val, line_number, _opts = nil)
         return if %w[V Z F E].include?(val)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' (allowed: V, Z, F, E) " \
-          "on line #{line_no}"
+          "on line #{line_number}"
         )
       end
 
-      def check_einzelstrecke(name, idx, val, line_no, _opts = nil)
+      def check_einzelstrecke(name, idx, val, line_number, _opts = nil)
         unless val.match?(/^\d+$/)
           return add_err(
-            "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_no})"
+            "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_number})"
           )
         end
 
@@ -375,16 +375,16 @@ module Dsv7
 
         add_err(
           "Element #{name}, attribute #{idx}: Einzelstrecke out of range '#{val}' " \
-          "(allowed 1..25000 or 0) on line #{line_no}"
+          "(allowed 1..25000 or 0) on line #{line_number}"
         )
       end
 
-      def check_technik(name, idx, val, line_no, _opts = nil)
+      def check_technik(name, idx, val, line_number, _opts = nil)
         return if %w[F R B S L X].include?(val)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Technik '#{val}' (allowed: F, R, B, S, L, X) " \
-          "on line #{line_no}"
+          "on line #{line_number}"
         )
       end
 
@@ -415,44 +415,44 @@ module Dsv7
         )
       end
 
-      def check_wert_typ(name, idx, val, line_no, _opts = nil)
+      def check_wert_typ(name, idx, val, line_number, _opts = nil)
         return if %w[JG AK].include?(val)
 
         add_err(
-          "Element #{name}, attribute #{idx}: invalid Wertungstyp '#{val}' (allowed: JG, AK) on line #{line_no}"
+          "Element #{name}, attribute #{idx}: invalid Wertungstyp '#{val}' (allowed: JG, AK) on line #{line_number}"
         )
       end
 
-      def check_jgak(name, idx, val, line_no, _opts = nil)
+      def check_jgak(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^\d{1,4}$/) || val.match?(/^[ABCDEJ]$/) || val.match?(/^\d{2,3}\+$/)
 
-        add_err("Element #{name}, attribute #{idx}: invalid JG/AK '#{val}' on line #{line_no}")
+        add_err("Element #{name}, attribute #{idx}: invalid JG/AK '#{val}' on line #{line_number}")
       end
 
-      def check_geschlecht_erw(name, idx, val, line_no, _opts = nil)
+      def check_geschlecht_erw(name, idx, val, line_number, _opts = nil)
         return if %w[M W X D].include?(val)
 
         add_err(
           "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, X, D) " \
-          "on line #{line_no}"
+          "on line #{line_number}"
         )
       end
 
-      def check_geschlecht_pf(name, idx, val, line_no, _opts = nil)
+      def check_geschlecht_pf(name, idx, val, line_number, _opts = nil)
         return if %w[M W D].include?(val)
 
         add_err(
-          "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, D) on line #{line_no}"
+          "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, D) on line #{line_number}"
         )
       end
 
-      def check_meldegeld_typ(name, idx, val, line_no, _opts = nil)
+      def check_meldegeld_typ(name, idx, val, line_number, _opts = nil)
         allowed = %w[MELDEGELDPAUSCHALE EINZELMELDEGELD STAFFELMELDEGELD WKMELDEGELD
                      MANNSCHAFTMELDEGELD]
         return if allowed.include?(val.upcase)
 
         add_err(
-          "Element #{name}, attribute #{idx}: invalid Meldegeld Typ '#{val}' on line #{line_no}"
+          "Element #{name}, attribute #{idx}: invalid Meldegeld Typ '#{val}' on line #{line_number}"
         )
       end
     end
@@ -496,24 +496,24 @@ module Dsv7
         @result = result
       end
 
-      def validate_element(name, attrs, line_no)
+      def validate_element(name, attrs, line_number)
         schema = SCHEMAS[name]
         return unless schema
 
-        check_count(name, attrs, schema.length, line_no)
+        check_count(name, attrs, schema.length, line_number)
         schema.each_with_index do |spec, i|
           type, required, opts = spec
           val = attrs[i]
           if (val.nil? || val.empty?) && required
-            add_err("Element #{name}: missing required attribute #{i + 1} on line #{line_no}")
+            add_err("Element #{name}: missing required attribute #{i + 1} on line #{line_number}")
             next
           end
           next if val.nil? || val.empty?
 
-          send("check_#{type}", name, i + 1, val, line_no, opts)
+          send("check_#{type}", name, i + 1, val, line_number, opts)
         end
 
-        validate_cross_rules(name, attrs, line_no)
+        validate_cross_rules(name, attrs, line_number)
       end
 
       private
@@ -522,14 +522,14 @@ module Dsv7
         @result.add_error(msg)
       end
 
-      def check_count(name, attrs, expected, line_no)
+      def check_count(name, attrs, expected, line_number)
         got = attrs.length
         return if got == expected
 
-        add_err("Element #{name}: expected #{expected} attributes, got #{got} (line #{line_no})")
+        add_err("Element #{name}: expected #{expected} attributes, got #{got} (line #{line_number})")
       end
 
-      def validate_cross_rules(name, attrs, line_no)
+      def validate_cross_rules(name, attrs, line_number)
         return unless name == 'MELDEGELD'
 
         type_str = attrs[0].to_s.upcase
@@ -537,7 +537,7 @@ module Dsv7
         return unless needs_wk
 
         add_err(
-          "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line #{line_no}"
+          "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line #{line_number}"
         )
       end
     end
