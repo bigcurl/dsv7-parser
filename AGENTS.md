@@ -110,6 +110,9 @@ Concise conventions for contributing code and tests to this repo. Focus is on a 
 ## Style & Linting
 
 - Use RuboCop; run `bundle exec rake rubocop`.
+- Write both library code and tests in a RuboCop‑compliant way; fix all offenses before submitting.
+- Do not change `.rubocop.yml` to satisfy offenses; fix the code instead.
+- Avoid inline `# rubocop:disable` comments; refactor to comply where possible.
 - New cops enabled; line length max `100` (see `.rubocop.yml`).
 - `Metrics/BlockLength` is relaxed for `Rakefile` and `test/**/*`.
 - `Style/Documentation` disabled (no mandatory class/module docs).
