@@ -8,30 +8,115 @@ Ruby gem stub for a SAX parser targeting the DSV7 swim file format.
 
 ## Validator
 
-Basic high-level validation of DSV7 files is available:
+Basic and WKDL‑aware validation of DSV7 files is available via one entrypoint:
 
 ```
 require 'dsv7/parser'
 
-# Single entrypoint: pass a path, IO, or a string with file content
+# Pass a path, IO, or a String with file content
 result = Dsv7::Validator.validate('path/to/file.DSV7')
-puts "valid? #{result.valid?}"
-puts "list_type: #{result.list_type}, version: #{result.version}"
-puts "errors:   #{result.errors.inspect}"
-puts "warnings: #{result.warnings.inspect}"
 
-# Example with string content
-content = "FORMAT:Wettkampfdefinitionsliste;7;\nDATA;ok\nDATEIENDE\n"
-result2 = Dsv7::Validator.validate(content)
+puts "valid?     #{result.valid?}"
+puts "list_type: #{result.list_type}"
+puts "version:   #{result.version}"
+puts "errors:    #{result.errors.inspect}"
+puts "warnings:  #{result.warnings.inspect}"
 ```
 
-Checks include:
+Accepted inputs:
 
-- FORMAT line at top (`FORMAT:<Listentyp>;7;`), with known list types
-- UTF-8 without BOM
-- Inline/standalone comment delimiters `(* ... *)` are balanced per line
-- Non-comment data lines contain at least one `;` delimiter
-- Terminator `DATEIENDE` present and last
+- File path String: streamed from disk
+- IO object (e.g., `File.open` or `StringIO`): streamed
+- Content String: streamed via `StringIO`
+
+Structural checks (all list types):
+
+- First effective line is `FORMAT:<Listentyp>;7;` (whitespace tolerated)
+- List type is one of: `Wettkampfdefinitionsliste`, `Vereinsmeldeliste`,
+  `Wettkampfergebnisliste`, `Vereinsergebnisliste`
+- UTF‑8 encoding, BOM detection (BOM is an error)
+- Inline comments `(* ... *)` stripped; unbalanced `(*`/`*)` on a line is an error
+- Non‑empty data lines after FORMAT must contain at least one `;`
+- Terminator `DATEIENDE` present; no effective content after it
+
+Filename guidance (when validating by path):
+
+- Warns if the filename does not match `JJJJ-MM-TT-Ort-Zusatz.DSV7`
+
+Minimal example (generic list type):
+
+```
+content = <<~DSV
+  FORMAT:Vereinsmeldeliste;7;
+  DATA;ok
+  DATEIENDE
+DSV
+
+result = Dsv7::Validator.validate(content)
+puts result.valid? # => true
+```
+
+Wettkampfdefinitionsliste validation (cardinality + attribute types):
+
+```
+wkdl = <<~DSV
+  FORMAT:Wettkampfdefinitionsliste;7;
+  ERZEUGER:Soft;1.0;mail@example.com;
+  VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+  VERANSTALTUNGSORT:Schwimmstadion;Strasse;12345;Ort;GER;tel;fax;mail@ex.amp.le;
+  AUSSCHREIBUNGIMNETZ:;
+  VERANSTALTER:Club;
+  AUSRICHTER:Verein;Kontakt;;;Ort;GER;;;kontakt@example.com;
+  MELDEADRESSE:Kontakt;;;;;;;kontakt@example.com;
+  MELDESCHLUSS:01.01.2024;12:00;
+  ABSCHNITT:1;01.01.2024;;;10:00;;
+  WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+  MELDEGELD:EINZELMELDEGELD;2,00;;
+  DATEIENDE
+DSV
+
+wk_result = Dsv7::Validator.validate(wkdl)
+puts wk_result.valid?      # => true
+puts wk_result.errors      # => []
+puts wk_result.warnings    # => []
+```
+
+Common error and warning examples:
+
+```
+# 1) Unknown list type and missing DATEIENDE
+bad = "FORMAT:Unbekannt;7;\n"
+r = Dsv7::Validator.validate(bad)
+r.errors.include?("Unknown list type in FORMAT: 'Unbekannt'")
+r.errors.include?("Missing 'DATEIENDE' terminator line")
+
+# 2) Unsupported version
+r = Dsv7::Validator.validate("FORMAT:Vereinsergebnisliste;6;\nDATEIENDE\n")
+r.errors.include?("Unsupported format version '6', expected '7'")
+
+# 3) Unbalanced comment delimiters
+r = Dsv7::Validator.validate("FORMAT:Vereinsmeldeliste;7; (* open\nDATEIENDE\n")
+r.errors.any? { |e| e.include?('Unmatched comment delimiters on line') }
+
+# 4) CRLF detection (warning only)
+crlf = "FORMAT:Vereinsmeldeliste;7;\r\nDATEIENDE\r\n"
+r = Dsv7::Validator.validate(crlf)
+r.valid?          # => true
+r.warnings        # => ['CRLF line endings detected']
+
+# 5) Missing delimiter ';' in a data line
+r = Dsv7::Validator.validate("FORMAT:Vereinsmeldeliste;7;\nDATA no semicolon\nDATEIENDE\n")
+r.errors.include?("Missing attribute delimiter ';' on line 2")
+
+# 6) Filename pattern warning
+File.write('tmp/badname.txt', "FORMAT:Vereinsmeldeliste;7;\nDATEIENDE\n")
+begin
+  r = Dsv7::Validator.validate('tmp/badname.txt')
+  r.warnings.first.include?("does not follow 'JJJJ-MM-TT-Ort-Zusatz.DSV7'")
+ensure
+  File.delete('tmp/badname.txt')
+end
+```
 
 ## Parser (Wettkampfdefinitionsliste)
 
