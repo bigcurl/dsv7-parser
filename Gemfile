@@ -6,6 +6,7 @@ gemspec
 
 group :development, :test do
   gem 'minitest', '>= 5.18'
+  gem 'rake', '>= 13.0'
 end
 
 group :development do

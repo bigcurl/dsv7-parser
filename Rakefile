@@ -7,7 +7,8 @@ require 'rubocop/rake_task'
 Rake::TestTask.new(:test) do |t|
   t.libs << 'lib'
   t.test_files = FileList['test/**/*_test.rb']
-  t.verbose = true
+  # Do not echo the underlying ruby command with the test file list
+  t.verbose = false
 end
 
 task default: :test
