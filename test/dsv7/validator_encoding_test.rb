@@ -8,7 +8,7 @@ class Dsv7ValidatorEncodingTest < Minitest::Test
     Dsv7::Validator.validate(content)
   end
 
-  def format_line(type = 'Vereinsmeldeliste', version = '7')
+  def format_line(type = 'Wettkampfergebnisliste', version = '7')
     "FORMAT:#{type};#{version};"
   end
 

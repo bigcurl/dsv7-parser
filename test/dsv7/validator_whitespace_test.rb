@@ -22,7 +22,7 @@ class Dsv7ValidatorWhitespaceTest < Minitest::Test
   end
 
   def test_whitespace_only_lines_after_dateiende_are_ok
-    content = "FORMAT:Vereinsmeldeliste;7;\nDATEIENDE\n   \n\t\n"
+    content = "FORMAT:Wettkampfergebnisliste;7;\nDATEIENDE\n   \n\t\n"
     result = validate_string(content)
     assert result.valid?, result.errors.inspect
   end

@@ -118,6 +118,7 @@ Concise conventions for contributing code and tests to this repo. Focus is on a 
 - `Style/Documentation` disabled (no mandatory class/module docs).
 - String literals: prefer single quotes; use double quotes when interpolation/escapes are needed.
 - Keep methods small and cohesive; favor clear names over brevity.
+ - Names: prefer full words for variables and methods; avoid abbreviations (e.g., use `line_number` not `line_no`, `add_error` not `add_err`).
 
 ## Structure & Namespacing
 

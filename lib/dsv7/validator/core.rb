@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'date'
+require_relative '../stream'
+require_relative '../lex'
 
 module Dsv7
   class Validator
@@ -21,24 +23,15 @@ module Dsv7
       private
 
       def check_bom_and_rewind(io)
-        head = io.read(3)
-        return if head.nil? || head.empty?
-
-        if head.bytes == [0xEF, 0xBB, 0xBF]
-          @result.add_error('UTF-8 BOM detected (spec requires UTF-8 without BOM)')
-        else
-          head.bytes.reverse_each { |b| io.ungetbyte(b) }
-        end
+        bom = Dsv7::Stream.read_bom?(io)
+        @result.add_error('UTF-8 BOM detected (spec requires UTF-8 without BOM)') if bom
       end
 
       def sanitize_line(raw_line)
-        # Remove trailing LF then CR for CRLF compatibility
-        s = raw_line.delete_suffix("\n").delete_suffix("\r")
-        s.force_encoding(Encoding::UTF_8)
-        return s if s.valid_encoding?
-
-        @result.add_error('File is not valid UTF-8 encoding')
-        s.scrub('�')
+        Dsv7::Stream.sanitize_line(
+          raw_line,
+          on_invalid: -> { @result.add_error('File is not valid UTF-8 encoding') }
+        )
       end
 
       def process_lines(io)
@@ -50,15 +43,13 @@ module Dsv7
         @result
       end
 
-      def iterate(io)
-        had_crlf = false
-        line_number = 0
-        io.each_line("\n") do |raw_line|
-          line_number += 1
-          had_crlf ||= raw_line.end_with?("\r\n")
-          yield sanitize_line(raw_line), line_number
+      def iterate(io, &block)
+        Dsv7::Stream.each_sanitized_line(
+          io,
+          on_invalid: -> { @result.add_error('File is not valid UTF-8 encoding') }
+        ) do |line, line_number|
+          block.call(line, line_number)
         end
-        had_crlf
       end
 
       def check_filename(filename)
@@ -72,7 +63,73 @@ module Dsv7
     end
 
     # Handles line-by-line structural checks
+    # Shared helpers extracted from LineAnalyzer to keep class small
+    module LineAnalyzerWk
+      def track_wk_element(trimmed)
+        return unless @result.list_type == 'Wettkampfdefinitionsliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, = pair
+        return if name == 'FORMAT'
+        return if name == 'DATEIENDE'
+
+        @wk_elements[name] += 1
+      end
+
+      def validate_wk_list_elements
+        WkCardinality.new(@result, @wk_elements).validate!
+      end
+
+      def validate_wk_line(trimmed, line_number)
+        return unless @result.list_type == 'Wettkampfdefinitionsliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, attrs = pair
+        return if %w[FORMAT DATEIENDE].include?(name)
+
+        @wk_schema.validate_element(name, attrs, line_number)
+      end
+    end
+
+    module LineAnalyzerVml
+      def track_vml_element(trimmed)
+        return unless @result.list_type == 'Vereinsmeldeliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, = pair
+        return if name == 'FORMAT'
+        return if name == 'DATEIENDE'
+
+        @vml_elements[name] += 1
+      end
+
+      def validate_vml_list_elements
+        VmlCardinality.new(@result, @vml_elements).validate!
+      end
+
+      def validate_vml_line(trimmed, line_number)
+        return unless @result.list_type == 'Vereinsmeldeliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, attrs = pair
+        return if %w[FORMAT DATEIENDE].include?(name)
+
+        @vml_schema.validate_element(name, attrs, line_number)
+      end
+    end
+
     class LineAnalyzer
+      include LineAnalyzerWk
+      include LineAnalyzerVml
+
       def initialize(result)
         @result = result
         @effective_index = 0
@@ -81,6 +138,8 @@ module Dsv7
         @after_dateiende_effective_line_number = nil
         @wk_elements = Hash.new(0)
         @wk_schema = WkSchema.new(@result)
+        @vml_elements = Hash.new(0)
+        @vml_schema = VmlSchema.new(@result)
       end
 
       def process_line(line, line_number)
@@ -90,18 +149,15 @@ module Dsv7
 
         @effective_index += 1
         return handle_first_effective(trimmed, line_number) if @effective_index == 1
-
         return @dateiende_index = line_number if trimmed == 'DATEIENDE'
 
-        @after_dateiende_effective_line_number ||= line_number if @dateiende_index
-        require_semicolon(trimmed, line_number)
-        track_wk_element(trimmed)
-        validate_wk_line(trimmed, line_number)
+        handle_content_line(trimmed, line_number)
       end
 
       def finish
         post_validate_positions
         validate_wk_list_elements if @result.list_type == 'Wettkampfdefinitionsliste'
+        validate_vml_list_elements if @result.list_type == 'Vereinsmeldeliste'
       end
 
       private
@@ -122,18 +178,22 @@ module Dsv7
       end
 
       def strip_inline_comment(line)
-        remove_inline_comments(line).strip
+        Dsv7::Stream.strip_inline_comment(line).strip
       end
 
       def check_format_line(trimmed, line_number)
-        m = trimmed.match(/^FORMAT:([^;]+);(\d+);$/)
+        m = Dsv7::Lex.parse_format(trimmed)
         msg = "First non-empty line must be 'FORMAT:<Listentyp>;7;' (line #{line_number})"
         return @result.add_error(msg) unless m
 
-        @result.set_format(lt = m[1], m[2])
+        lt, ver = m
+        # Enforce numeric version token for exact syntax compatibility
+        return @result.add_error(msg) unless ver.match?(/^\d+$/)
+
+        @result.set_format(lt, ver)
         @result.add_error("Unknown list type in FORMAT: '#{lt}'") unless
           Validator::ALLOWED_LIST_TYPES.include?(lt)
-        @result.add_error("Unsupported format version '#{m[2]}', expected '7'") unless m[2] == '7'
+        @result.add_error("Unsupported format version '#{ver}', expected '7'") unless ver == '7'
       end
 
       def require_semicolon(trimmed, line_number)
@@ -153,36 +213,16 @@ module Dsv7
       end
 
       def remove_inline_comments(line)
-        return line unless line.include?('(*') && line.include?('*)')
-
-        line.gsub(/\(\*.*?\*\)/, '')
+        Dsv7::Stream.strip_inline_comment(line)
       end
 
-      def track_wk_element(trimmed)
-        return unless @result.list_type == 'Wettkampfdefinitionsliste'
-        return unless trimmed.include?(':')
-
-        name = trimmed.split(':', 2).first.strip
-        return if name == 'FORMAT'
-        return if name == 'DATEIENDE'
-
-        @wk_elements[name] += 1
-      end
-
-      def validate_wk_list_elements
-        WkCardinality.new(@result, @wk_elements).validate!
-      end
-
-      def validate_wk_line(trimmed, line_number)
-        return unless @result.list_type == 'Wettkampfdefinitionsliste'
-        return unless trimmed.include?(':')
-
-        name, rest = trimmed.split(':', 2)
-        return if %w[FORMAT DATEIENDE].include?(name)
-
-        attrs = rest.split(';', -1)
-        attrs.pop if attrs.last == ''
-        @wk_schema.validate_element(name, attrs, line_number)
+      def handle_content_line(trimmed, line_number)
+        @after_dateiende_effective_line_number ||= line_number if @dateiende_index
+        require_semicolon(trimmed, line_number)
+        track_wk_element(trimmed)
+        track_vml_element(trimmed)
+        validate_wk_line(trimmed, line_number)
+        validate_vml_line(trimmed, line_number)
       end
     end
 
@@ -238,8 +278,45 @@ module Dsv7
       end
     end
 
-    # Type-check and schema helpers for WKDL
-    module WkTypeChecks
+    # Validates Vereinsmeldeliste element cardinalities
+    class VmlCardinality
+      def initialize(result, elements)
+        @result = result
+        @elements = elements
+      end
+
+      def validate!
+        require_exactly_one(%w[ERZEUGER VERANSTALTUNG VEREIN ANSPRECHPARTNER])
+        require_at_least_one(%w[ABSCHNITT WETTKAMPF])
+      end
+
+      private
+
+      def require_exactly_one(elements)
+        elements.each do |el|
+          count = @elements[el]
+          if count.zero?
+            @result.add_error("Vereinsmeldeliste: missing required element '#{el}'")
+          elsif count != 1
+            @result.add_error(
+              "Vereinsmeldeliste: element '#{el}' occurs #{count} times (expected 1)"
+            )
+          end
+        end
+      end
+
+      def require_at_least_one(elements)
+        elements.each do |el|
+          count = @elements[el]
+          next if count >= 1
+
+          @result.add_error("Vereinsmeldeliste: missing required element '#{el}'")
+        end
+      end
+    end
+
+    # Type-check helpers for WKDL: split into small modules to keep complexity low
+    module WkTypeChecksCommon
       def check_zk(_name, _index, _val, _line_number, _opts = nil)
         # any string (already UTF-8 scrubbed); nothing to do
       end
@@ -247,70 +324,101 @@ module Dsv7
       def check_zahl(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^\d+$/)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_number})"
-        )
-      end
-
-      def check_datum(name, idx, val, line_number, _opts = nil)
-        unless val.match?(/^\d{2}\.\d{2}\.\d{4}$/)
-          return add_err(
-            "Element #{name}, attribute #{idx}: invalid Datum '#{val}' " \
-            "(expected TT.MM.JJJJ) on line #{line_number}"
-          )
-        end
-
-        Date.strptime(val, '%d.%m.%Y')
-      rescue ArgumentError
-        add_err("Element #{name}, attribute #{idx}: impossible date '#{val}' on line #{line_number}")
-      end
-
-      def check_uhrzeit(name, idx, val, line_number, _opts = nil)
-        unless val.match?(/^\d{2}:\d{2}$/)
-          return add_err(
-            "Element #{name}, attribute #{idx}: invalid Uhrzeit '#{val}' " \
-            "(expected HH:MM) on line #{line_number}"
-          )
-        end
-
-        hh, mm = val.split(':').map(&:to_i)
-        return if (0..23).cover?(hh) && (0..59).cover?(mm)
-
-        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_number}")
-      end
-
-      def check_zeit(name, idx, val, line_number, _opts = nil)
-        unless val.match?(/^\d{2}:\d{2}:\d{2},\d{2}$/)
-          return add_err(
-            "Element #{name}, attribute #{idx}: invalid Zeit '#{val}' " \
-            "(expected HH:MM:SS,hh) on line #{line_number}"
-          )
-        end
-
-        h, m, s_hh = val.split(':')
-        s, hh = s_hh.split(',')
-        h = h.to_i
-        m = m.to_i
-        s = s.to_i
-        hh = hh.to_i
-        return if (0..23).cover?(h) && (0..59).cover?(m) && (0..59).cover?(s) && (0..99).cover?(hh)
-
-        add_err("Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_number}")
+        add_error(invalid_zahl_error(name, idx, val, line_number))
       end
 
       def check_betrag(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^\d+,\d{2}$/)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Betrag '#{val}' (expected x,yy) on line #{line_number}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Betrag '#{val}' (expected x,yy) " \
+          "on line #{line_number}"
         )
       end
 
+      def check_einzelstrecke(name, idx, val, line_number, _opts = nil)
+        return add_error(invalid_zahl_error(name, idx, val, line_number)) unless val.match?(/^\d+$/)
+
+        n = val.to_i
+        return if n.zero? || (1..25_000).cover?(n)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: Einzelstrecke out of range '#{val}' " \
+          "(allowed 1..25000 or 0) on line #{line_number}"
+        )
+      end
+
+      def invalid_zahl_error(name, idx, val, line_number)
+        "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_number})"
+      end
+    end
+
+    module WkTypeChecksDateTime
+      def check_datum(name, idx, val, line_number, _opts = nil)
+        return add_error(datum_format_error(name, idx, val, line_number)) unless
+          val.match?(/^\d{2}\.\d{2}\.\d{4}$/)
+
+        Date.strptime(val, '%d.%m.%Y')
+      rescue ArgumentError
+        add_error(impossible_date_error(name, idx, val, line_number))
+      end
+
+      def check_uhrzeit(name, idx, val, line_number, _opts = nil)
+        return add_error(uhrzeit_format_error(name, idx, val, line_number)) unless
+          val.match?(/^\d{2}:\d{2}$/)
+
+        hh, mm = val.split(':').map(&:to_i)
+        return if (0..23).cover?(hh) && (0..59).cover?(mm)
+
+        add_error(time_out_of_range_error(name, idx, val, line_number))
+      end
+
+      def check_zeit(name, idx, val, line_number, _opts = nil)
+        return add_error(zeit_format_error(name, idx, val, line_number)) unless
+          val.match?(/^\d{2}:\d{2}:\d{2},\d{2}$/)
+
+        h, m, s, hh = parse_zeit_parts(val)
+        return if (0..23).cover?(h) && (0..59).cover?(m) && (0..59).cover?(s) && (0..99).cover?(hh)
+
+        add_error(time_out_of_range_error(name, idx, val, line_number))
+      end
+
+      def datum_format_error(name, idx, val, line_number)
+        "Element #{name}, attribute #{idx}: invalid Datum '#{val}' " \
+          "(expected TT.MM.JJJJ) on line #{line_number}"
+      end
+
+      def impossible_date_error(name, idx, val, line_number)
+        "Element #{name}, attribute #{idx}: impossible date '#{val}' on line #{line_number}"
+      end
+
+      def uhrzeit_format_error(name, idx, val, line_number)
+        "Element #{name}, attribute #{idx}: invalid Uhrzeit '#{val}' " \
+          "(expected HH:MM) on line #{line_number}"
+      end
+
+      def zeit_format_error(name, idx, val, line_number)
+        "Element #{name}, attribute #{idx}: invalid Zeit '#{val}' " \
+          "(expected HH:MM:SS,hh) on line #{line_number}"
+      end
+
+      def time_out_of_range_error(name, idx, val, line_number)
+        "Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_number}"
+      end
+
+      def parse_zeit_parts(val)
+        h, m, s_hh = val.split(':')
+        s, hh = s_hh.split(',')
+        [h.to_i, m.to_i, s.to_i, hh.to_i]
+      end
+    end
+
+    module WkTypeChecksEnums1
       def check_bahnl(name, idx, val, line_number, _opts = nil)
         allowed = %w[16 20 25 33 50 FW X]
         return if allowed.include?(val)
 
-        add_err(
+        add_error(
           "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
           "#{allowed.join(', ')}) on line #{line_number}"
         )
@@ -320,7 +428,7 @@ module Dsv7
         allowed = %w[HANDZEIT AUTOMATISCH HALBAUTOMATISCH]
         return if allowed.include?(val)
 
-        add_err(
+        add_error(
           "Element #{name}, attribute #{idx}: invalid Zeitmessung '#{val}' (allowed: " \
           "#{allowed.join(', ')}) on line #{line_number}"
         )
@@ -329,9 +437,9 @@ module Dsv7
       def check_land(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^[A-Z]{3}$/)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Land '#{val}' (expected FINA code, e.g., GER) " \
-          "on line #{line_number}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Land '#{val}' " \
+          "(expected FINA code, e.g., GER) on line #{line_number}"
         )
       end
 
@@ -339,7 +447,7 @@ module Dsv7
         allowed = %w[25 50 FW AL]
         return if allowed.include?(val)
 
-        add_err(
+        add_error(
           "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
           "#{allowed.join(', ')}) on line #{line_number}"
         )
@@ -348,7 +456,7 @@ module Dsv7
       def check_relativ(name, idx, val, line_number, _opts = nil)
         return if %w[J N].include?(val)
 
-        add_err(
+        add_error(
           "Element #{name}, attribute #{idx}: invalid Relative Angabe '#{val}' (allowed: J, N) " \
           "on line #{line_number}"
         )
@@ -357,50 +465,36 @@ module Dsv7
       def check_wk_art(name, idx, val, line_number, _opts = nil)
         return if %w[V Z F E].include?(val)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' (allowed: V, Z, F, E) " \
-          "on line #{line_number}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' " \
+          "(allowed: V, Z, F, E) on line #{line_number}"
         )
       end
+    end
 
-      def check_einzelstrecke(name, idx, val, line_number, _opts = nil)
-        unless val.match?(/^\d+$/)
-          return add_err(
-            "Element #{name}, attribute #{idx}: invalid Zahl '#{val}' (line #{line_number})"
-          )
-        end
-
-        n = val.to_i
-        return if n.zero? || (1..25_000).cover?(n)
-
-        add_err(
-          "Element #{name}, attribute #{idx}: Einzelstrecke out of range '#{val}' " \
-          "(allowed 1..25000 or 0) on line #{line_number}"
-        )
-      end
-
+    module WkTypeChecksEnums2
       def check_technik(name, idx, val, line_number, _opts = nil)
         return if %w[F R B S L X].include?(val)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Technik '#{val}' (allowed: F, R, B, S, L, X) " \
-          "on line #{line_number}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Technik '#{val}' " \
+          "(allowed: F, R, B, S, L, X) on line #{line_number}"
         )
       end
 
       def check_ausuebung(name, idx, val, line_no, _opts = nil)
         return if %w[GL BE AR ST WE GB X].include?(val)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Ausübung '#{val}' (allowed: GL, BE, AR, ST, WE, GB, X) " \
-          "on line #{line_no}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Ausübung '#{val}' " \
+          "(allowed: GL, BE, AR, ST, WE, GB, X) on line #{line_no}"
         )
       end
 
       def check_geschlecht_wk(name, idx, val, line_no, _opts = nil)
         return if %w[M W X].include?(val)
 
-        add_err(
+        add_error(
           "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, X) " \
           "on line #{line_no}"
         )
@@ -409,30 +503,33 @@ module Dsv7
       def check_bestenliste(name, idx, val, line_no, _opts = nil)
         return if %w[SW EW PA MS KG XX].include?(val)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Zuordnung '#{val}' (allowed: SW, EW, PA, MS, KG, XX) " \
-          "on line #{line_no}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Zuordnung '#{val}' " \
+          "(allowed: SW, EW, PA, MS, KG, XX) on line #{line_no}"
         )
       end
 
       def check_wert_typ(name, idx, val, line_number, _opts = nil)
         return if %w[JG AK].include?(val)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Wertungstyp '#{val}' (allowed: JG, AK) on line #{line_number}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Wertungstyp '#{val}' (allowed: JG, AK) " \
+          "on line #{line_number}"
         )
       end
 
       def check_jgak(name, idx, val, line_number, _opts = nil)
         return if val.match?(/^\d{1,4}$/) || val.match?(/^[ABCDEJ]$/) || val.match?(/^\d{2,3}\+$/)
 
-        add_err("Element #{name}, attribute #{idx}: invalid JG/AK '#{val}' on line #{line_number}")
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid JG/AK '#{val}' on line #{line_number}"
+        )
       end
 
       def check_geschlecht_erw(name, idx, val, line_number, _opts = nil)
         return if %w[M W X D].include?(val)
 
-        add_err(
+        add_error(
           "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, X, D) " \
           "on line #{line_number}"
         )
@@ -441,84 +538,64 @@ module Dsv7
       def check_geschlecht_pf(name, idx, val, line_number, _opts = nil)
         return if %w[M W D].include?(val)
 
-        add_err(
-          "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, D) on line #{line_number}"
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, D) " \
+          "on line #{line_number}"
         )
       end
 
       def check_meldegeld_typ(name, idx, val, line_number, _opts = nil)
-        allowed = %w[MELDEGELDPAUSCHALE EINZELMELDEGELD STAFFELMELDEGELD WKMELDEGELD
-                     MANNSCHAFTMELDEGELD]
+        allowed = %w[
+          MELDEGELDPAUSCHALE EINZELMELDEGELD STAFFELMELDEGELD WKMELDEGELD MANNSCHAFTMELDEGELD
+        ]
         return if allowed.include?(val.upcase)
 
-        add_err(
+        add_error(
           "Element #{name}, attribute #{idx}: invalid Meldegeld Typ '#{val}' on line #{line_number}"
         )
       end
     end
 
-    # Validates Wettkampfdefinitionsliste attribute counts and datatypes
-    class WkSchema
-      include WkTypeChecks
+    # Aggregate module to provide a single include point
+    module WkTypeChecks
+      include WkTypeChecksCommon
+      include WkTypeChecksDateTime
+      include WkTypeChecksEnums1
+      include WkTypeChecksEnums2
+    end
 
-      SCHEMAS = {
-        'ERZEUGER' => [[:zk, true], [:zk, true], [:zk, true]],
-        'VERANSTALTUNG' => [[:zk, true], [:zk, true], [:bahnl, true], [:zeitmessung, true]],
-        'VERANSTALTUNGSORT' => [
-          [:zk,
-           true], [:zk, false], [:zk, false], [:zk, true], [:land, true], [:zk, false], [:zk, false], [:zk, false]
-        ],
-        'AUSSCHREIBUNGIMNETZ' => [[:zk, false]],
-        'VERANSTALTER' => [[:zk, true]],
-        'AUSRICHTER' => [
-          [:zk,
-           true], [:zk, true], [:zk, false], [:zk, false], [:zk, false], [:land, false], [:zk, false], [:zk, false], [:zk, true]
-        ],
-        'MELDEADRESSE' => [
-          [:zk,
-           true], [:zk, false], [:zk, false], [:zk, false], [:land, false], [:zk, false], [:zk, false], [:zk, true]
-        ],
-        'MELDESCHLUSS' => [[:datum, true], [:uhrzeit, true]],
-        'BANKVERBINDUNG' => [[:zk, false], [:zk, true], [:zk, false]],
-        'BESONDERES' => [[:zk, true]],
-        'NACHWEIS' => [[:datum, true], [:datum, false], [:nachweis_bahn, true]],
-        'ABSCHNITT' => [[:zahl, true], [:datum, true], [:uhrzeit, false], [:uhrzeit, false],
-                        [:uhrzeit, true], [:relativ, false]],
-        'WETTKAMPF' => [
-          [:zahl, true], [:wk_art, true], [:zahl, true], [:zahl, false], [:einzelstrecke, true],
-          [:technik, true], [:ausuebung, true], [:geschlecht_wk, true], [:bestenliste, true], [:zahl, false], [:wk_art, false]
-        ],
-        # Intentionally omitting WERTUNG and PFLICHTZEIT for now due to spec inconsistencies in examples
-        'MELDEGELD' => [[:meldegeld_typ, true], [:betrag, true], [:zahl, false]]
-      }.freeze
-
+    # Shared schema scaffolding for element count and attribute validation
+    class SchemaBase
       def initialize(result)
         @result = result
       end
 
       def validate_element(name, attrs, line_number)
-        schema = SCHEMAS[name]
+        schema = self.class::SCHEMAS[name]
         return unless schema
 
         check_count(name, attrs, schema.length, line_number)
+        validate_attribute_types(name, attrs, schema, line_number)
+        validate_cross_rules(name, attrs, line_number) if respond_to?(:validate_cross_rules, true)
+      end
+
+      private
+
+      def validate_attribute_types(name, attrs, schema, line_number)
         schema.each_with_index do |spec, i|
           type, required, opts = spec
           val = attrs[i]
           if (val.nil? || val.empty?) && required
-            add_err("Element #{name}: missing required attribute #{i + 1} on line #{line_number}")
+            add_error("Element #{name}: missing required attribute #{i + 1} on line #{line_number}")
             next
           end
           next if val.nil? || val.empty?
 
           send("check_#{type}", name, i + 1, val, line_number, opts)
         end
-
-        validate_cross_rules(name, attrs, line_number)
       end
 
-      private
-
-      def add_err(msg)
+      def add_error(msg)
         @result.add_error(msg)
       end
 
@@ -526,8 +603,52 @@ module Dsv7
         got = attrs.length
         return if got == expected
 
-        add_err("Element #{name}: expected #{expected} attributes, got #{got} (line #{line_number})")
+        add_error(
+          "Element #{name}: expected #{expected} attributes, got #{got} (line #{line_number})"
+        )
       end
+    end
+
+    # Validates Wettkampfdefinitionsliste attribute counts and datatypes
+    class WkSchema < SchemaBase
+      include WkTypeChecks
+
+      SCHEMAS = {
+        'ERZEUGER' => [[:zk, true], [:zk, true], [:zk, true]],
+        'VERANSTALTUNG' => [
+          [:zk, true], [:zk, true], [:bahnl, true], [:zeitmessung, true]
+        ],
+        'VERANSTALTUNGSORT' => [
+          [:zk, true], [:zk, false], [:zk, false], [:zk, true],
+          [:land, true], [:zk, false], [:zk, false], [:zk, false]
+        ],
+        'AUSSCHREIBUNGIMNETZ' => [[:zk, false]],
+        'VERANSTALTER' => [[:zk, true]],
+        'AUSRICHTER' => [
+          [:zk, true], [:zk, true], [:zk, false], [:zk, false], [:zk, false],
+          [:land, false], [:zk, false], [:zk, false], [:zk, true]
+        ],
+        'MELDEADRESSE' => [
+          [:zk, true], [:zk, false], [:zk, false], [:zk, false],
+          [:land, false], [:zk, false], [:zk, false], [:zk, true]
+        ],
+        'MELDESCHLUSS' => [[:datum, true], [:uhrzeit, true]],
+        'BANKVERBINDUNG' => [[:zk, false], [:zk, true], [:zk, false]],
+        'BESONDERES' => [[:zk, true]],
+        'NACHWEIS' => [[:datum, true], [:datum, false], [:nachweis_bahn, true]],
+        'ABSCHNITT' => [
+          [:zahl, true], [:datum, true], [:uhrzeit, false],
+          [:uhrzeit, false], [:uhrzeit, true], [:relativ, false]
+        ],
+        'WETTKAMPF' => [
+          [:zahl, true], [:wk_art, true], [:zahl, true], [:zahl, false],
+          [:einzelstrecke, true], [:technik, true], [:ausuebung, true],
+          [:geschlecht_wk, true], [:bestenliste, true], [:zahl, false], [:wk_art, false]
+        ],
+        # Intentionally omitting WERTUNG and PFLICHTZEIT for now
+        # (spec examples appear inconsistent)
+        'MELDEGELD' => [[:meldegeld_typ, true], [:betrag, true], [:zahl, false]]
+      }.freeze
 
       def validate_cross_rules(name, attrs, line_number)
         return unless name == 'MELDEGELD'
@@ -536,10 +657,52 @@ module Dsv7
         needs_wk = type_str == 'WKMELDEGELD' && (attrs[2].nil? || attrs[2].empty?)
         return unless needs_wk
 
-        add_err(
+        add_error(
           "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line #{line_number}"
         )
       end
+    end
+
+    # Validates Vereinsmeldeliste attribute counts and datatypes
+    class VmlSchema < SchemaBase
+      include WkTypeChecks
+
+      SCHEMAS = {
+        'ERZEUGER' => [[:zk, true], [:zk, true], [:zk, true]],
+        'VERANSTALTUNG' => [[:zk, true], [:zk, true], [:bahnl, true], [:zeitmessung, true]],
+        'ABSCHNITT' => [[:zahl, true], [:datum, true], [:uhrzeit, true], [:relativ, false]],
+        'WETTKAMPF' => [
+          [:zahl, true], [:wk_art, true], [:zahl, true], [:zahl, false],
+          [:einzelstrecke, true], [:technik, true], [:ausuebung, true],
+          [:geschlecht_wk, true], [:zahl, false], [:wk_art, false]
+        ],
+        'VEREIN' => [[:zk, true], [:zahl, true], [:zahl, true], [:land, true]],
+        'ANSPRECHPARTNER' => [
+          [:zk, true], [:zk, false], [:zk, false], [:zk, false],
+          [:land, false], [:zk, false], [:zk, false], [:zk, true]
+        ],
+        'KARIMELDUNG' => [[:zahl, true], [:zk, true], [:zk, true]],
+        'KARIABSCHNITT' => [[:zahl, true], [:zahl, true], [:zk, false]],
+        'TRAINER' => [[:zahl, true], [:zk, true]],
+        'PNMELDUNG' => [
+          [:zk, true], [:zahl, true], [:zahl, true], [:geschlecht_pf, true],
+          [:zahl, true], [:zahl, false], [:zahl, false],
+          [:land, false], [:land, false], [:land, false]
+        ],
+        'HANDICAP' => [
+          [:zahl, true], [:zk, false], [:zk, false],
+          [:zk, true], [:zk, true], [:zk, true], [:zk, false]
+        ],
+        'STARTPN' => [[:zahl, true], [:zahl, true], [:zeit, false]],
+        'STMELDUNG' => [
+          [:zahl, true], [:zahl, true], [:wert_typ, true],
+          [:jgak, true], [:jgak, false], [:zk, false]
+        ],
+        'STARTST' => [[:zahl, true], [:zahl, true], [:zeit, false]],
+        'STAFFELPERSON' => [[:zahl, true], [:zahl, true], [:zahl, true], [:zahl, true]]
+      }.freeze
+
+      # no extra cross-rules for VML currently
     end
   end
 end

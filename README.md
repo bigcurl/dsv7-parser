@@ -8,7 +8,7 @@ Ruby gem stub for a SAX parser targeting the DSV7 swim file format.
 
 ## Validator
 
-Basic and WKDL‑aware validation of DSV7 files is available via one entrypoint:
+Basic envelope checks plus WKDL and VML element validation are available via one entrypoint:
 
 ```
 require 'dsv7/parser'
@@ -80,6 +80,28 @@ puts wk_result.valid?      # => true
 puts wk_result.errors      # => []
 puts wk_result.warnings    # => []
 ```
+
+Vereinsmeldeliste validation (cardinality + attribute types):
+
+```
+vml = <<~DSV
+  FORMAT:Vereinsmeldeliste;7;
+  ERZEUGER:Soft;1.0;mail@example.com;
+  VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+  ABSCHNITT:1;01.01.2024;10:00;N;
+  WETTKAMPF:1;V;1;;100;F;GL;M;;;
+  VEREIN:Mein Verein;1234;17;GER;
+  ANSPRECHPARTNER:Beispiel, Alice;;;;;;;alice@example.com;
+  DATEIENDE
+DSV
+
+vml_result = Dsv7::Validator.validate(vml)
+puts vml_result.valid?    # => true
+```
+
+Validated VML elements: ERZEUGER, VERANSTALTUNG, ABSCHNITT, WETTKAMPF, VEREIN,
+ANSPRECHPARTNER, KARIMELDUNG, KARIABSCHNITT, TRAINER, PNMELDUNG, HANDICAP,
+STARTPN, STMELDUNG, STARTST, STAFFELPERSON.
 
 Common error and warning examples:
 

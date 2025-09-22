@@ -4,6 +4,14 @@ require 'minitest/autorun'
 require 'dsv7/parser'
 
 class Dsv7ParserWkdlTest < Minitest::Test
+  def collect_events
+    events = []
+    Dsv7::Parser.parse_wettkampfdefinitionsliste(wkdl_sample) do |type, payload, line_number|
+      events << [type, payload, line_number]
+    end
+    events
+  end
+
   def wkdl_sample
     <<~DSV
       (* header comment *)
@@ -15,24 +23,21 @@ class Dsv7ParserWkdlTest < Minitest::Test
     DSV
   end
 
-  def test_streams_events_for_wkdl
-    events = []
-    Dsv7::Parser.parse_wettkampfdefinitionsliste(wkdl_sample) do |type, payload, line_number|
-      events << [type, payload, line_number]
-    end
-
+  def test_streams_format_event
+    events = collect_events
     refute_empty events
-
     fmt = events.shift
     assert_equal :format, fmt[0]
     assert_equal 'Wettkampfdefinitionsliste', fmt[1][:list_type]
     assert_equal '7', fmt[1][:version]
+  end
 
+  def test_streams_first_element_and_end
+    events = collect_events
     first_el = events.find { |e| e[0] == :element }
     refute_nil first_el
     assert_equal 'ERZEUGER', first_el[1][:name]
     assert_equal ['Soft', '1.0', 'mail@example.com'], first_el[1][:attrs]
-
     assert_equal :end, events.last[0]
   end
 

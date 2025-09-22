@@ -378,4 +378,270 @@ DATEIENDE
 ```
 ---
 
+## Vereinsmeldeliste
+
+### `FORMAT`
+
+- Vorkommen: **genau 1**
+- Hinweis: Dieses Element muss **immer** als **erste Zeile der Datei** stehen.
+
+| Attribut  | Datentyp | Pflicht | Beschreibung |
+|-----------|----------|---------|--------------|
+| Listart   | ZK       | J       | Konstant: `Vereinsmeldeliste` |
+| Version   | Zahl     | J       | Versionsnummer des DSV-Standards (aktuell: `7`) |
+
+### `ERZEUGER`
+
+- Vorkommen: **genau 1**
+- Hinweis: Informationen zur Software, die die Datei erzeugt hat.
+
+| Attribut | Datentyp | Pflicht | Beschreibung |
+|----------|----------|---------|--------------|
+| Software | ZK       | J       | Name der Software, die die Datei erzeugt hat |
+| Version  | ZK       | J       | Versionskennung der Software |
+| Kontakt  | ZK       | J       | E-Mail-Adresse des Software-Herstellers |
+
+### `VERANSTALTUNG`
+
+- Vorkommen: **genau 1**
+- Hinweis: Beschreibung der Wettkampfveranstaltung.
+
+| Attribut               | Datentyp | Pflicht | Beschreibung |
+|------------------------|----------|---------|--------------|
+| Veranstaltungsbezeichnung | ZK    | J       | Name der Veranstaltung |
+| Veranstaltungsort         | ZK    | J       | Ort der Veranstaltung |
+| Bahnlänge                 | ZK    | J       | Bahnlänge in Metern (`16`, `20`, `25`, `33`, `50`, `FW` oder `X` bei abweichend) |
+| Zeitmessung              | ZK    | J       | Art der Zeitmessung: `HANDZEIT`, `AUTOMATISCH`, `HALBAUTOMATISCH` |
+
+### `ABSCHNITT`
+
+- Vorkommen: **1 bis N**
+- Hinweis: Definition der einzelnen Veranstaltungsabschnitte.
+
+| Attribut          | Datentyp | Pflicht | Beschreibung |
+|-------------------|----------|---------|--------------|
+| Abschnittsnr.     | Zahl     | J       | Nummer des Abschnitts (max. zweistellig) |
+| Abschnittsdatum   | Datum    | J       | Datum des Abschnitts (`TT.MM.JJJJ`) |
+| Anfangszeit       | Uhrzeit  | J       | Beginn des Abschnitts (`HH:MM`, 24h-Format) |
+| Relative Angabe   | Zeichen  | N       | `N` = absolute Zeit, `J` = relativ zur Vorzeit (Standard: `N`) |
+
+### `WETTKAMPF`
+
+- Vorkommen: **1 bis N**
+- Hinweis: Definition der einzelnen Wettkämpfe der Veranstaltung.
+
+| Attribut                 | Datentyp | Pflicht | Beschreibung |
+|--------------------------|----------|---------|--------------|
+| Wettkampfnr.             | Zahl     | J       | Nummer des Wettkampfs (max. dreistellig) |
+| Wettkampfart             | Zeichen  | J       | `V` = Vorlauf, `E` = Entscheidung |
+| Abschnittsnr.            | Zahl     | J       | Nummer des zugehörigen Abschnitts |
+| Anzahl Starter           | Zahl     | N       | Anzahl Teilnehmer (Standard: `1` bei Einzeldisziplin) |
+| Einzelstrecke            | Zahl     | J       | Streckenlänge in Metern (`1–25000` oder `0` für sonstige) |
+| Technik                  | Zeichen  | J       | `F` = Freistil, `R` = Rücken, `B` = Brust, `S` = Schmetterling, `L` = Lagen, `X` = Sonstiges |
+| Ausübung                 | ZK       | J       | `GL` = ganze Lage, `BE`, `AR`, `ST`, `WE`, `GB`, `X` |
+| Geschlecht               | Zeichen  | J       | `M` = männlich, `W` = weiblich, `X` = gemischt |
+| Qualifikationswettkampfnr | Zahl    | N       | Nummer des Qualifikationswettkampfs |
+| Qualifikationswettkampfart | Zeichen | N       | `V`, `Z`, `F`, `E` |
+
+### `VEREIN`
+
+- Vorkommen: **genau 1**
+- Hinweis: Informationen über den meldenden Verein.
+
+| Attribut             | Datentyp | Pflicht | Beschreibung |
+|----------------------|----------|---------|--------------|
+| Vereinsbezeichnung   | ZK       | J       | Name des Vereins |
+| Vereinskennzahl      | Zahl     | J       | 4-stellige vom DSV vergebene Kennzahl (bei nicht DSV-Vereinen: `0`) |
+| Landesschwimmverband | Zahl     | J       | Numerische Kennung des LSV (1–18, bei Ausland `0`, bei Auswahlmannschaften `99`) |
+| FINA-Nationenkürzel  | ZK       | J       | 3-stelliges Länderkürzel nach FINA, z. B. `GER` |
+
+### `ANSPRECHPARTNER`
+
+- Vorkommen: **genau 1**
+- Hinweis: Kontaktdaten der meldenden Person.
+
+| Attribut | Datentyp | Pflicht | Beschreibung |
+|----------|----------|---------|--------------|
+| Name     | ZK       | J       | Nachname, Vorname |
+| Straße   | ZK       | N       | Straße der meldenden Person |
+| PLZ      | ZK       | N       | Postleitzahl |
+| Ort      | ZK       | N       | Ort |
+| Land     | ZK       | N       | Länderkürzel nach FINA, z. B. `GER` |
+| Telefon  | ZK       | N       | Telefonnummer |
+| Fax      | ZK       | N       | Faxnummer |
+| eMail    | ZK       | J       | E-Mail-Adresse |
+
+
+### `KARIMELDUNG`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Meldung der eingesetzten Kampfrichter*innen.
+
+| Attribut        | Datentyp | Pflicht | Beschreibung |
+|------------------|----------|---------|--------------|
+| Nummer Kampfrichter | Zahl  | J       | Eindeutige numerische ID des Kampfrichters |
+| Name            | ZK       | J       | Nachname, Vorname |
+| Kampfrichtergruppe | ZK    | J       | `WKR`, `AUS`, `SCH`, `SPR` |
+
+
+### `KARIABSCHNITT`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Angabe, in welchen Abschnitten ein Kampfrichter zur Verfügung steht.
+
+| Attribut        | Datentyp | Pflicht | Beschreibung |
+|------------------|----------|---------|--------------|
+| Nummer Kampfrichter | Zahl  | J       | Referenz auf `KARIMELDUNG` |
+| Abschnittsnummer   | Zahl  | J       | Nummer des Abschnitts |
+| Einsatzwunsch      | ZK    | N       | Gewünschter Einsatzbereich, z. B. `SCH`, `STA`, `ZR`, `ZN`, `SR`, `WR`, `AUS`, `SP`, `PKF`, `STO`, `ASCH`, `SIB`, `SAUF`, `VER` |
+
+
+### `TRAINER`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Angaben zu den Trainer*innen des Vereins.
+
+| Attribut        | Datentyp | Pflicht | Beschreibung |
+|------------------|----------|---------|--------------|
+| Nummer Trainer   | Zahl     | J       | Eindeutige numerische ID zur Zuordnung bei `PNMELDUNG` |
+| Name             | ZK       | J       | Nachname, Vorname des Trainers/der Trainerin |
+
+### `PNMELDUNG`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Meldung der einzelnen Teilnehmer*innen.
+
+| Attribut                  | Datentyp | Pflicht | Beschreibung |
+|---------------------------|----------|---------|--------------|
+| Name                      | ZK       | J       | Nachname, Vorname des Teilnehmers/der Teilnehmerin |
+| DSV-ID Schwimmer          | Zahl     | J       | 6-stellige DSV-ID (bei unbekannt: `0`) |
+| Veranstaltungs-ID         | Zahl     | J       | Eindeutige ID zur Zuordnung innerhalb der Veranstaltung |
+| Geschlecht des Schwimmers | Zeichen  | J       | `M` = männlich, `W` = weiblich, `D` = divers |
+| Jahrgang                  | Zahl     | J       | Jahrgang vierstellig (z. B. `1990`) |
+| Altersklasse              | Zahl     | N       | Altersklasse (optional) |
+| Nummer Trainer            | Zahl     | N       | Referenz auf `TRAINER`, falls zugeordnet |
+| Nationalität 1            | ZK       | N       | 3-stelliger FINA-Code, z. B. `GER` |
+| Nationalität 2            | ZK       | N       | Weitere Staatsangehörigkeit |
+| Nationalität 3            | ZK       | N       | Weitere Staatsangehörigkeit |
+
+### `HANDICAP`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Nur für Para-Schwimmer*innen (ergänzend zur `PNMELDUNG`).
+
+| Attribut                  | Datentyp | Pflicht | Beschreibung |
+|---------------------------|----------|---------|--------------|
+| Veranstaltungs-ID         | Zahl     | J       | Referenz auf `PNMELDUNG` |
+| DBS-ID                    | ZK       | N       | Nationale ID des/der Schwimmer*in beim DBS |
+| IPC-ID                    | ZK       | N       | Internationale IPC-ID |
+| Startklasse               | ZK       | J       | Startklasse (außer Lagen/Brust), z. B. `S8`, `AB` |
+| Startklasse Brust         | ZK       | J       | Startklasse für Brust, z. B. `SB5`, `AB` |
+| Startklasse Lagen         | ZK       | J       | Startklasse für Lagen, z. B. `SM6`, `AB` |
+| Exceptions                | ZK       | N       | Liste
+
+### `STARTPN`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Einzelstart eines Schwimmers in einem bestimmten Wettkampf.
+
+| Attribut                  | Datentyp | Pflicht | Beschreibung |
+|---------------------------|----------|---------|--------------|
+| Veranstaltungs-ID des Schwimmers | Zahl | J | Referenz auf `PNMELDUNG` |
+| Wettkampfnummer           | Zahl     | J       | Nummer des Wettkampfs |
+| Meldezeit                 | Zeit     | N       | Gemeldete Zeit (Standard: `00:00:00,00`) |
+
+### `STMELDUNG`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Meldung einer Staffel für einen bestimmten Wettkampf.
+
+| Attribut                      | Datentyp | Pflicht | Beschreibung |
+|-------------------------------|----------|---------|--------------|
+| Nummer der Mannschaft         | Zahl     | J       | Mannschaftsnummer (z. B. `1`, `2`, ...) |
+| Veranstaltungs-ID der Staffel | Zahl     | J       | Eindeutige ID der Staffel in dieser Veranstaltung |
+| Wertungsklasse Typ            | ZK       | J       | `JG` = Jahrgang, `AK` = Altersklasse |
+| Mindest‑JG/AK                 | JGAK     | J       | Mindestjahrgang oder maximale Altersklasse (bei offenen Klassen: `0`) |
+| Maximale JG/AK                | JGAK     | N       | Falls abweichend vom Mindestwert; sonst leer |
+| Name der Staffel              | ZK       | N       | Optionaler Staffelname (z. B. „Nachwuchsteam“) |
+
+### `STARTST`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Startmeldung einer Staffel in einem bestimmten Wettkampf.
+
+| Attribut                      | Datentyp | Pflicht | Beschreibung |
+|-------------------------------|----------|---------|--------------|
+| Veranstaltungs-ID der Staffel | Zahl     | J       | Referenz auf `STMELDUNG` |
+| Wettkampfnummer               | Zahl     | J       | Nummer des Wettkampfs |
+| Meldezeit                     | Zeit     | N       | Gemeldete Zeit (Standard: `00:00:00,00`) |
+
+### `STAFFELPERSON`
+
+- Vorkommen: **0 bis N**
+- Hinweis: Zuweisung der Schwimmer*innen zu einer Staffel in einem bestimmten Wettkampf.
+
+| Attribut                          | Datentyp | Pflicht | Beschreibung |
+|-----------------------------------|----------|---------|--------------|
+| Veranstaltungs-ID der Staffel     | Zahl     | J       | Referenz auf `STMELDUNG` |
+| Wettkampfnummer                   | Zahl     | J       | Nummer des Wettkampfs |
+| Veranstaltungs-ID des Schwimmers  | Zahl     | J       | Referenz auf `PNMELDUNG` |
+| Startnummer innerhalb der Staffel | Zahl     | J       | Position im Staffelverlauf (1–4) |
+
+### `DATEIENDE`
+
+- Vorkommen: **genau 1**
+- Hinweis: Dieses Element muss **immer die letzte Zeile** der Datei sein.  
+  Es besitzt **keine Attribute**.
+
+| Attribut | Datentyp | Pflicht | Beschreibung |
+|----------|----------|---------|--------------|
+| *(keine)* | –        | –       | Dieses Element enthält keine Datenfelder. |
+
+
+### Beispiel: Vereinsmeldeliste
+
+Dateiname: `2002-03-10-Duisburg-SVHansaA-Me.DSV7`
+
+```
+FORMAT:Vereinsmeldeliste;7;
+ERZEUGER:Schwimmsoftware;1.01;info@meinewebseite.de;
+VERANSTALTUNG:EDV-Testwettkampf des SV NRW;Duisburg;50;HANDZEIT;
+ABSCHNITT:1;09.03.2002;16:00;;
+ABSCHNITT:2;10.03.2002;16:00;;
+WETTKAMPF:1;V;1;;100;F;GL;W;;;
+WETTKAMPF:2;V;1;;50;R;GL;M;;;
+WETTKAMPF:3;E;2;;200;S;GL;W;;;
+WETTKAMPF:4;E;2;4;100;B;GL;M;;;
+WETTKAMPF:5;E;1;;100;F;GL;W;;;
+WETTKAMPF:101;F;1;;100;F;GL;W;1;V;
+VEREIN:SV Hansa Adorf;1234;17;GER;
+ANSPRECHPARTNER:Mücke, Heinz;Kastenstr.69;12345;Adorf;GER;09999/11111;Kein Fax;
+HeinzMuecke@GibtsNicht.de;
+KARIMELDUNG:1;Mücke, Gerda;WKR;
+KARIABSCHNITT:1;1;;
+KARIABSCHNITT:1;2;;
+KARIMELDUNG:2;Mücke, Heinz;AUS;
+KARIABSCHNITT:2;1;:
+KARIABSCHNITT:2;2;AUS;
+TRAINER:1;Meyer,Paul;
+PNMELDUNG:Keller, Simone;123456;4711;W;1990;;1;GER;;;
+STARTPN:4711;1;00:01:01,02;
+STARTPN:4711;3;00:02:38,10;
+PNMELDUNG:Schumann, Sandra;123457;4712;W;1990;;;GER;;;
+STARTPN:4712;1;00:01:03,30;
+STARTPN:4712;3;00:02:42,52;
+PNMELDUNG:Lustig, Peter;123450;4713;M;1989;;;GER;;;
+PNMELDUNG:Reimer, Ralf;123451;4714;M;1989;;;GER;;;
+PNMELDUNG:Buchen, Thomas;123452;4715;M;1990;;;GER;;;
+PNMELDUNG:Schlimm, Ralf;123453;4716;M;1989;;;GER;;;
+STMELDUNG:1;2525;JG;1989;1990;;
+STARTST:2525;4;00:04:30,04;
+STAFFELPERSON:2525;4;4713;1;
+STAFFELPERSON:2525;4;4714;2;
+STAFFELPERSON:2525;4;4715;3;
+STAFFELPERSON:2525;4;4716;4;
+DATEIENDE
+```
+
 _(Hinweis: Dieses Dokument ist automatisch aus der DSV7-Spezifikation erzeugt worden und ersetzt **nicht** das offizielle Dokument. Es dient der technischen Verarbeitung.)_
+

@@ -8,7 +8,7 @@ class Dsv7ValidatorFormatSyntaxTest < Minitest::Test
     Dsv7::Validator.validate(content)
   end
 
-  def format_line(type = 'Vereinsmeldeliste', version = '7')
+  def format_line(type = 'Wettkampfergebnisliste', version = '7')
     "FORMAT:#{type};#{version};"
   end
 
@@ -30,8 +30,22 @@ class Dsv7ValidatorFormatSyntaxTest < Minitest::Test
     DSV
   end
 
+  def vml_minimal
+    <<~DSV
+      FORMAT:Vereinsmeldeliste;7;
+      ERZEUGER:Soft;1.0;mail@example.com;
+      VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+      ABSCHNITT:1;01.01.2024;10:00;N;
+      WETTKAMPF:1;V;1;;100;F;GL;M;;;
+      VEREIN:Mein Verein;1234;17;GER;
+      ANSPRECHPARTNER:Beispiel, Alice;;;;;;;alice@example.com;
+      DATEIENDE
+    DSV
+  end
+
   def content_for_type(type)
     return wk_minimal if type == 'Wettkampfdefinitionsliste'
+    return vml_minimal if type == 'Vereinsmeldeliste'
 
     "#{format_line(type)}\nDATA;ok\nDATEIENDE\n"
   end

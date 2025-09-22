@@ -3,7 +3,7 @@
 require 'minitest/autorun'
 require 'dsv7/parser'
 
-class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
+module WkdlTestHelpers
   def validate_string(content)
     Dsv7::Validator.validate(content)
   end
@@ -26,6 +26,10 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
       DATEIENDE
     DSV
   end
+end
+
+class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
+  include WkdlTestHelpers
 
   def test_meldeschluss_date_and_time_types
     body = <<~BODY
@@ -39,28 +43,45 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
     assert result.valid?, result.errors.inspect
   end
 
-  def test_invalid_date_and_time_are_rejected
+  def invalid_date_time_content
     body = <<~BODY
       MELDESCHLUSS:2024-01-01;24:00;
       ABSCHNITT:1;32.13.2024;;;10:00;;
       WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
       MELDEGELD:EINZELMELDEGELD;2,00;;
     BODY
-    content = wk_head + body + wk_tail
-    result = validate_string(content)
+    wk_head + body + wk_tail
+  end
+
+  def test_invalid_date_format_is_rejected
+    result = validate_string(invalid_date_time_content)
     assert_includes result.errors,
                     "Element MELDESCHLUSS, attribute 1: invalid Datum '2024-01-01' " \
                     '(expected TT.MM.JJJJ) on line 9'
+  end
+
+  def test_invalid_time_out_of_range_is_rejected
+    result = validate_string(invalid_date_time_content)
     assert_includes result.errors,
                     "Element MELDESCHLUSS, attribute 2: time out of range '24:00' on line 9"
+  end
+
+  def test_impossible_abschnitt_date_is_rejected
+    result = validate_string(invalid_date_time_content)
     assert_includes result.errors,
                     "Element ABSCHNITT, attribute 2: impossible date '32.13.2024' on line 10"
   end
 
-  def test_veranstaltung_bahnlaenge_and_zeitmessung
+  # moved to Dsv7ValidatorWkdlAttributesMoreTest
+
+  # moved to Dsv7ValidatorWkdlAttributesMoreTest
+
+  # moved to Dsv7ValidatorWkdlAttributesMoreTest
+
+  def test_abschnitt_relative_flag_accepts_j
     body = <<~BODY
       MELDESCHLUSS:01.01.2024;12:00;
-      ABSCHNITT:1;01.01.2024;;;10:00;;
+      ABSCHNITT:1;01.01.2024;;;10:00;J;
       WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
       MELDEGELD:EINZELMELDEGELD;2,00;;
     BODY
@@ -69,8 +90,26 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
     assert result.valid?, result.errors.inspect
   end
 
-  def test_invalid_bahnlaenge_and_technik
-    content = <<~DSV
+  def test_abschnitt_relative_flag_invalid_value
+    bad = wk_head + <<~BODY + wk_tail
+      MELDESCHLUSS:01.01.2024;12:00;
+      ABSCHNITT:1;01.01.2024;;;10:00;K;
+      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      MELDEGELD:EINZELMELDEGELD;2,00;;
+    BODY
+    r = validate_string(bad)
+    assert_includes r.errors,
+                    "Element ABSCHNITT, attribute 6: invalid Relative Angabe 'K' " \
+                    '(allowed: J, N) on line 10'
+  end
+end
+
+# Split tests to keep class size within RuboCop limits
+class Dsv7ValidatorWkdlAttributesMoreTest < Minitest::Test
+  include WkdlTestHelpers
+
+  def invalid_bahn_technik_content
+    <<~DSV
       FORMAT:Wettkampfdefinitionsliste;7;
       ERZEUGER:Soft;1.0;mail@example.com;
       VERANSTALTUNG:Name;Ort;17;HANDZEIT;
@@ -85,15 +124,18 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
       MELDEGELD:EINZELMELDEGELD;2,00;;
       DATEIENDE
     DSV
+  end
+
+  def test_veranstaltung_bahnlaenge_and_zeitmessung
+    body = <<~BODY
+      MELDESCHLUSS:01.01.2024;12:00;
+      ABSCHNITT:1;01.01.2024;;;10:00;;
+      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      MELDEGELD:EINZELMELDEGELD;2,00;;
+    BODY
+    content = wk_head + body + wk_tail
     result = validate_string(content)
-    assert_includes result.errors,
-                    "Element VERANSTALTUNG, attribute 3: invalid Bahnlänge '17' " \
-                    '(allowed: 16, 20, 25, 33, 50, FW, X) on line 3'
-    assert_includes result.errors,
-                    "Element WETTKAMPF, attribute 5: Einzelstrecke out of range '30000' " \
-                    '(allowed 1..25000 or 0) on line 11'
-    assert_includes result.errors,
-                    "Element WETTKAMPF, attribute 6: invalid Technik 'Q' (allowed: F, R, B, S, L, X) on line 11"
+    assert result.valid?, result.errors.inspect
   end
 
   def test_meldegeld_type_and_requirement
@@ -109,26 +151,20 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
                     "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line 12"
   end
 
-  def test_abschnitt_relative_flag_validation
-    body = <<~BODY
-      MELDESCHLUSS:01.01.2024;12:00;
-      ABSCHNITT:1;01.01.2024;;;10:00;J;
-      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
-      MELDEGELD:EINZELMELDEGELD;2,00;;
-    BODY
-    content = wk_head + body + wk_tail
-    result = validate_string(content)
-    assert result.valid?, result.errors.inspect
+  def test_invalid_bahnlaenge
+    r = validate_string(invalid_bahn_technik_content)
+    assert_includes r.errors,
+                    "Element VERANSTALTUNG, attribute 3: invalid Bahnlänge '17' " \
+                    '(allowed: 16, 20, 25, 33, 50, FW, X) on line 3'
+  end
 
-    bad_body = <<~BODY
-      MELDESCHLUSS:01.01.2024;12:00;
-      ABSCHNITT:1;01.01.2024;;;10:00;K;
-      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
-      MELDEGELD:EINZELMELDEGELD;2,00;;
-    BODY
-    bad = wk_head + bad_body + wk_tail
-    bad_result = validate_string(bad)
-    assert_includes bad_result.errors,
-                    "Element ABSCHNITT, attribute 6: invalid Relative Angabe 'K' (allowed: J, N) on line 10"
+  def test_invalid_technik_and_einzelstrecke
+    r = validate_string(invalid_bahn_technik_content)
+    assert_includes r.errors,
+                    "Element WETTKAMPF, attribute 5: Einzelstrecke out of range '30000' " \
+                    '(allowed 1..25000 or 0) on line 11'
+    assert_includes r.errors,
+                    "Element WETTKAMPF, attribute 6: invalid Technik 'Q' " \
+                    '(allowed: F, R, B, S, L, X) on line 11'
   end
 end

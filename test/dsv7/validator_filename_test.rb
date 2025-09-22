@@ -9,7 +9,7 @@ class Dsv7ValidatorFilenameTest < Minitest::Test
     FileUtils.mkdir_p('tmp')
   end
 
-  def format_line(type = 'Vereinsmeldeliste', version = '7')
+  def format_line(type = 'Wettkampfergebnisliste', version = '7')
     "FORMAT:#{type};#{version};"
   end
 
@@ -40,8 +40,22 @@ class Dsv7ValidatorFilenameTest < Minitest::Test
     FileUtils.rm_f(path)
   end
 
+  def vml_minimal
+    <<~DSV
+      FORMAT:Vereinsmeldeliste;7;
+      ERZEUGER:Soft;1.0;mail@example.com;
+      VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+      ABSCHNITT:1;01.01.2024;10:00;N;
+      WETTKAMPF:1;V;1;;100;F;GL;M;;;
+      VEREIN:Mein Verein;1234;17;GER;
+      ANSPRECHPARTNER:Beispiel, Alice;;;;;;;alice@example.com;
+      DATEIENDE
+    DSV
+  end
+
   def content_for_type(list_type)
     return wettkampfdefinitionsliste_minimal if list_type == 'Wettkampfdefinitionsliste'
+    return vml_minimal if list_type == 'Vereinsmeldeliste'
 
     "FORMAT:#{list_type};7;\nDATEIENDE\n"
   end
