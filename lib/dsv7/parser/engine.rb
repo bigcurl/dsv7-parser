@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# Internal streaming engine used by `Dsv7::Parser`.
+#
+# Converts an input (path/IO/String) into a stream of parser events. It
+# performs the same line normalization as the validator (via Stream/IoUtil),
+# strips inline comments, and stops emitting at `DATEIENDE`.
+
 require 'stringio'
 require_relative '../stream'
 require_relative '../lex'

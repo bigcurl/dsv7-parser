@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# Parser IO utilities.
+#
+# `to_io` converts supported inputs to an IO; `with_io` manages lifetime
+# and applies Stream normalization; `each_content_line` yields non‑empty,
+# comment‑stripped content lines with 1‑based line numbers.
+
 require 'stringio'
 require_relative '../stream'
 

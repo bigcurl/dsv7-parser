@@ -5,7 +5,7 @@ require_relative 'base'
 
 module Dsv7
   class Validator
-    # Validates Vereinsmeldeliste attribute counts and datatypes
+    # Validates Vereinsmeldeliste attribute counts and datatypes.
     class VmlSchema < SchemaBase
       include WkTypeChecks
 

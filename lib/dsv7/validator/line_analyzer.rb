@@ -1,5 +1,12 @@
 # frozen_string_literal: true
 
+# Streaming line analyzer
+#
+# Orchestrates validation once lines have been sanitized and comments stripped.
+# Tracks the first effective FORMAT line, enforces the final DATEIENDE, and
+# dispatches element lines to list‑specific schema/type checks and cardinality
+# tracking. All findings are written into the shared `Result` instance.
+
 require_relative '../stream'
 require_relative 'line_analyzer_common'
 require_relative 'schemas/wk_schema'

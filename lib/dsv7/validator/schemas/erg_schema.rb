@@ -5,7 +5,9 @@ require_relative 'base'
 
 module Dsv7
   class Validator
-    # Validates Wettkampfergebnisliste attribute counts and datatypes
+    # Validates Wettkampfergebnisliste attribute counts and datatypes.
+    # Accepts synonymous element names found in the wild
+    # (e.g., STAFFELERGEBNIS/STERGEBNIS).
     class ErgSchema < SchemaBase
       include WkTypeChecks
 

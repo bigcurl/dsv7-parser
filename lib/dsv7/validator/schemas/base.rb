@@ -1,5 +1,22 @@
 # frozen_string_literal: true
 
+# Base class for per‑list schemas.
+#
+# A concrete schema class defines a `SCHEMAS` Hash mapping element names to an
+# Array of attribute specs. Each attribute spec is a tuple:
+#   [type, required, opts=nil]
+# where `type` corresponds to a `check_<type>` method mixed in from the
+# type‑check modules, `required` is a boolean, and `opts` can be used by a
+# specific checker.
+#
+# Cross‑field/element rules may be implemented by overriding
+# `validate_cross_rules(name, attrs, line_number)`.
+#
+# Documentation tips when adding/adjusting schemas:
+# - Copy the attribute count and types from the spec and real‑world examples.
+# - Clearly mark intentionally deferred or ambiguous elements in commit msgs.
+# - Add both positive and negative tests for each element and datatype.
+
 module Dsv7
   class Validator
     class SchemaBase

@@ -1,5 +1,13 @@
 # frozen_string_literal: true
 
+# List‑specific analyzer mixins
+#
+# These modules encapsulate per‑list tracking and validation methods used by
+# LineAnalyzer. Each provides three responsibilities for its list type:
+# - track_*_element: counts element occurrences for cardinality checks
+# - validate_*_list_elements: validates the observed counts at finish
+# - validate_*_line: validates a single element’s attributes via the schema
+
 require_relative '../lex'
 require_relative 'cardinality'
 

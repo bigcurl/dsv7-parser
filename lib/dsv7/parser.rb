@@ -1,5 +1,33 @@
 # frozen_string_literal: true
 
+# Dsv7::Parser
+#
+# Streaming parser for DSV7 lists. It yields a simple event stream so callers
+# can build their own structures without loading the whole file into memory.
+# The parser is intentionally tolerant (e.g., it scrubs invalid UTF‑8 and
+# accepts BOM) — pair it with `Dsv7::Validator` for strict conformance.
+#
+# Events
+# - `[:format, { list_type: String, version: String }, line_number]` — first
+#   effective line must be a FORMAT line.
+# - `[:element, { name: String, attrs: Array<String> }, line_number]` — for
+#   each element line between FORMAT and DATEIENDE.
+# - `[:end, nil, line_number]` — emitted after `DATEIENDE` (or EOF if missing).
+#
+# Usage
+#   Dsv7::Parser.parse(io_or_path_or_string) do |type, payload, ln|
+#     case type
+#     when :format  then # inspect payload[:list_type], payload[:version]
+#     when :element then # payload[:name], payload[:attrs]
+#     when :end     then # done
+#     end
+#   end
+#
+# Documenting new helpers
+# - Describe when a helper raises (e.g., wrong list type for a type‑specific
+#   parser) and what it yields.
+# - Note streaming/encoding behavior and that comments are stripped inline.
+
 require_relative 'parser/version'
 require_relative 'parser/engine'
 require_relative 'validator'

@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Enum/group checks (part 1): Bahnlänge, Zeitmessung, Land, etc.
+#
+# These normalize expectations found in the spec and examples and produce
+# actionable error messages that include allowed values.
+
 module Dsv7
   class Validator
     module WkTypeChecksEnums1

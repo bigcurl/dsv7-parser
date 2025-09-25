@@ -1,5 +1,13 @@
 # frozen_string_literal: true
 
+# Common datatype checks shared across lists.
+#
+# Implementations follow the spec’s informal definitions:
+# - ZK: arbitrary UTF‑8 string (already scrubbed by the stream layer)
+# - Zahl: integer (only digits)
+# - Betrag: monetary amount in the form `x,yy`
+# - Einzelstrecke: distance (1..25000) or 0 where permitted
+
 module Dsv7
   class Validator
     module WkTypeChecksCommon

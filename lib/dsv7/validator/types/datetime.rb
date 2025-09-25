@@ -1,5 +1,12 @@
 # frozen_string_literal: true
 
+# Date and time datatype checks.
+#
+# Enforces textual formats before validating value ranges:
+# - Datum:    TT.MM.JJJJ (validated via Date.strptime)
+# - Uhrzeit:  HH:MM      (0..23, 0..59)
+# - Zeit:     HH:MM:SS,hh (0..23, 0..59, 0..59, 0..99)
+
 require 'date'
 
 module Dsv7

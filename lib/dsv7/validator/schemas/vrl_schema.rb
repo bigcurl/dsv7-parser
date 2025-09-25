@@ -5,7 +5,9 @@ require_relative 'base'
 
 module Dsv7
   class Validator
-    # Validates Vereinsergebnisliste attribute counts and datatypes
+    # Validates Vereinsergebnisliste attribute counts and datatypes.
+    # Accepts synonymous element names found in the wild
+    # (e.g., STAFFELERGEBNIS/STERGEBNIS).
     class VrlSchema < SchemaBase
       include WkTypeChecks
 

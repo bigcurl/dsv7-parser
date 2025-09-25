@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# Element cardinality validation for each list type.
+#
+# Each validator receives the shared Result and a Hash of observed element
+# counts, then asserts required presence and max occurrences according to the
+# current understanding of the spec.
+
 module Dsv7
   class Validator
     # Validates Wettkampfdefinitionsliste element cardinalities

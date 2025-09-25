@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Enum/group checks (part 2): Technik, Ausübung, Geschlecht, Wertungstyp,
+# JG/AK, Meldegeldtypen, Reaktionsart, Nachtragskennzeichen, u. a.
+#
+# Keep allowed lists centralized here for clarity and reuse across schemas.
+
 module Dsv7
   class Validator
     module WkTypeChecksEnums2

@@ -1,5 +1,14 @@
 # frozen_string_literal: true
 
+# Low‑level IO helpers for streaming DSV7 content.
+#
+# Responsibilities
+# - Binary mode, BOM detection, and UTF‑8 normalization.
+# - Per‑line sanitization and CR/LF handling.
+# - Inline single‑line comment removal using the `(* ... *)` syntax.
+#
+# These helpers are shared by both the validator and the parser.
+
 module Dsv7
   module Stream
     module_function

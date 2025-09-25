@@ -5,7 +5,10 @@ require_relative 'base'
 
 module Dsv7
   class Validator
-    # Validates Wettkampfdefinitionsliste attribute counts and datatypes
+    # Validates Wettkampfdefinitionsliste attribute counts and datatypes.
+    #
+    # The `SCHEMAS` constant defines the exact attribute counts and types per
+    # element according to the current spec interpretation.
     class WkSchema < SchemaBase
       include WkTypeChecks
 

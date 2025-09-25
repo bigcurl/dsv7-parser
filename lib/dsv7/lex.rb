@@ -1,5 +1,13 @@
 # frozen_string_literal: true
 
+# Lexical helpers for simple DSV7 tokens.
+#
+# - `parse_format(line)` extracts the list type and version from an exact
+#   `FORMAT:<Listentyp>;<Version>;` line.
+# - `element(content)` splits an element line into its name and attributes.
+#
+# These functions are intentionally minimal and do not perform semantic checks.
+
 module Dsv7
   module Lex
     module_function

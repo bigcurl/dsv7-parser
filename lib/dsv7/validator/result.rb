@@ -1,5 +1,15 @@
 # frozen_string_literal: true
 
+# Validation result container
+#
+# Collects errors and warnings during a validation run and exposes
+# `list_type`/`version` after a valid FORMAT line is seen. `valid?` is true
+# iff there are no errors; warnings never affect validity.
+#
+# Message stability
+# - Keep message texts stable where possible; tests rely on them.
+# - Include line numbers when relevant to aid debugging.
+
 module Dsv7
   class Validator
     # Result container for validation

@@ -1,5 +1,17 @@
 # frozen_string_literal: true
 
+# Core validation pipeline
+#
+# Implements the IO/line streaming for the validator:
+# - puts IO in binary mode and detects BOM
+# - normalizes lines to UTF‑8 and tracks CRLF presence
+# - strips inline comments and delegates per‑line logic to LineAnalyzer
+# - adds a filename warning if the provided path does not match the guidance
+#
+# Notes for maintainers
+# - Keep this class side‑effect free beyond writing to `Result`.
+# - Avoid accumulating state; process line‑by‑line to preserve streaming.
+
 require_relative '../stream'
 require_relative '../lex'
 require_relative 'line_analyzer'
