@@ -26,4 +26,10 @@ class Dsv7ValidatorWhitespaceTest < Minitest::Test
     result = validate_string(content)
     assert result.valid?, result.errors.inspect
   end
+
+  def test_comment_only_lines_after_dateiende_are_ok
+    content = "FORMAT:Wettkampfergebnisliste;7;\nDATEIENDE\n(* trailing comment *)\n(* another *)\n"
+    result = validate_string(content)
+    assert result.valid?, result.errors.inspect
+  end
 end

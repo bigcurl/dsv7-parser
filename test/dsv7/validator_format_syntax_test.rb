@@ -25,6 +25,7 @@ class Dsv7ValidatorFormatSyntaxTest < Minitest::Test
       MELDESCHLUSS:01.01.2024;12:00;
       ABSCHNITT:1;01.01.2024;;;10:00;;
       WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      WERTUNG:1;V;1;JG;0;9999;;OFFENE WERTUNG;
       MELDEGELD:EINZELMELDEGELD;2,00;;
       DATEIENDE
     DSV

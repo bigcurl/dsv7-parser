@@ -103,7 +103,7 @@ Concise conventions for contributing code and tests to this repo. Focus is on a 
 
 ## Language & Versions
 
-- Ruby version: `3.4.6` in `.ruby-version`; gem supports `>= 2.7` (see `dsv7-parser.gemspec`).
+- Ruby version: `2.7.0` in `.ruby-version`; gem supports `>= 2.7` (see `dsv7-parser.gemspec`).
 - Add `# frozen_string_literal: true` to the top of Ruby files.
 - Avoid non‑portable syntax not available in Ruby 2.7.
 

@@ -21,6 +21,7 @@ class Dsv7ValidatorWkdlTest < Minitest::Test
       MELDESCHLUSS:01.01.2024;12:00;
       ABSCHNITT:1;01.01.2024;;;10:00;;
       WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      WERTUNG:1;V;1;JG;0;9999;;OFFENE WERTUNG;
       MELDEGELD:EINZELMELDEGELD;2,00;;
       DATEIENDE
     DSV
@@ -40,6 +41,7 @@ class Dsv7ValidatorWkdlTest < Minitest::Test
     assert_includes result.errors, "Wettkampfdefinitionsliste: missing required element 'ERZEUGER'"
     assert_includes result.errors, "Wettkampfdefinitionsliste: missing required element 'ABSCHNITT'"
     assert_includes result.errors, "Wettkampfdefinitionsliste: missing required element 'WETTKAMPF'"
+    assert_includes result.errors, "Wettkampfdefinitionsliste: missing required element 'WERTUNG'"
     assert_includes result.errors, "Wettkampfdefinitionsliste: missing required element 'MELDEGELD'"
   end
 

@@ -26,6 +26,18 @@ module WkdlTestHelpers
       DATEIENDE
     DSV
   end
+
+  def wk_body(relative: nil, meldegeld_line: 'MELDEGELD:EINZELMELDEGELD;2,00;;')
+    abs = 'ABSCHNITT:1;01.01.2024;;;10:00;'
+    abs += relative ? "#{relative};" : ';'
+    <<~BODY
+      MELDESCHLUSS:01.01.2024;12:00;
+      #{abs}
+      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      WERTUNG:1;V;1;JG;0;9999;;OFFENE WERTUNG;
+      #{meldegeld_line}
+    BODY
+  end
 end
 
 class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
@@ -36,6 +48,7 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
       MELDESCHLUSS:01.01.2024;12:00;
       ABSCHNITT:1;01.01.2024;;;10:00;;
       WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      WERTUNG:1;V;1;JG;0;9999;;OFFENE WERTUNG;
       MELDEGELD:EINZELMELDEGELD;2,00;;
     BODY
     content = wk_head + body + wk_tail
@@ -48,6 +61,7 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
       MELDESCHLUSS:2024-01-01;24:00;
       ABSCHNITT:1;32.13.2024;;;10:00;;
       WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
+      WERTUNG:1;V;1;JG;0;9999;;OFFENE WERTUNG;
       MELDEGELD:EINZELMELDEGELD;2,00;;
     BODY
     wk_head + body + wk_tail
@@ -79,24 +93,13 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
   # moved to Dsv7ValidatorWkdlAttributesMoreTest
 
   def test_abschnitt_relative_flag_accepts_j
-    body = <<~BODY
-      MELDESCHLUSS:01.01.2024;12:00;
-      ABSCHNITT:1;01.01.2024;;;10:00;J;
-      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
-      MELDEGELD:EINZELMELDEGELD;2,00;;
-    BODY
-    content = wk_head + body + wk_tail
+    content = wk_head + wk_body(relative: 'J') + wk_tail
     result = validate_string(content)
     assert result.valid?, result.errors.inspect
   end
 
   def test_abschnitt_relative_flag_invalid_value
-    bad = wk_head + <<~BODY + wk_tail
-      MELDESCHLUSS:01.01.2024;12:00;
-      ABSCHNITT:1;01.01.2024;;;10:00;K;
-      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
-      MELDEGELD:EINZELMELDEGELD;2,00;;
-    BODY
+    bad = wk_head + wk_body(relative: 'K') + wk_tail
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element ABSCHNITT, attribute 6: invalid Relative Angabe 'K' " \
@@ -127,28 +130,16 @@ class Dsv7ValidatorWkdlAttributesMoreTest < Minitest::Test
   end
 
   def test_veranstaltung_bahnlaenge_and_zeitmessung
-    body = <<~BODY
-      MELDESCHLUSS:01.01.2024;12:00;
-      ABSCHNITT:1;01.01.2024;;;10:00;;
-      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
-      MELDEGELD:EINZELMELDEGELD;2,00;;
-    BODY
-    content = wk_head + body + wk_tail
+    content = wk_head + wk_body + wk_tail
     result = validate_string(content)
     assert result.valid?, result.errors.inspect
   end
 
   def test_meldegeld_type_and_requirement
-    body = <<~BODY
-      MELDESCHLUSS:01.01.2024;12:00;
-      ABSCHNITT:1;01.01.2024;;;10:00;
-      WETTKAMPF:1;V;1;;100;F;GL;M;SW;;;
-      MELDEGELD:WKMELDEGELD;2,00;;
-    BODY
-    content = wk_head + body + wk_tail
+    content = wk_head + wk_body(meldegeld_line: 'MELDEGELD:WKMELDEGELD;2,00;;') + wk_tail
     result = validate_string(content)
     assert_includes result.errors,
-                    "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line 12"
+                    "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line 13"
   end
 
   def test_invalid_bahnlaenge

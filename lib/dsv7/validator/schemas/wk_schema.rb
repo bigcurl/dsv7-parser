@@ -41,8 +41,11 @@ module Dsv7
           [:einzelstrecke, true], [:technik, true], [:ausuebung, true],
           [:geschlecht_wk, true], [:bestenliste, true], [:zahl, false], [:wk_art, false]
         ],
-        # Intentionally omitting WERTUNG and PFLICHTZEIT for now
-        # (spec examples appear inconsistent)
+        'WERTUNG' => [
+          [:zahl, true], [:wk_art, true], [:zahl, true], [:wert_typ, true],
+          [:jgak, true], [:jgak, false], [:geschlecht_erw, false], [:zk, true]
+        ],
+        # Intentionally omitting PFLICHTZEIT for now (spec examples appear inconsistent)
         'MELDEGELD' => [[:meldegeld_typ, true], [:betrag, true], [:zahl, false]]
       }.freeze
 

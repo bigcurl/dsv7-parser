@@ -15,7 +15,7 @@ module Dsv7
              VERANSTALTER AUSRICHTER MELDEADRESSE MELDESCHLUSS]
         )
         forbid_more_than_one(%w[BANKVERBINDUNG BESONDERES NACHWEIS])
-        require_at_least_one(%w[ABSCHNITT WETTKAMPF MELDEGELD])
+        require_at_least_one(%w[ABSCHNITT WETTKAMPF WERTUNG MELDEGELD])
       end
 
       private

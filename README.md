@@ -2,6 +2,10 @@
 
 Ruby gem stub for a SAX parser targeting the DSV7 swim file format.
 
+Requirements
+
+- Ruby >= 2.7.0
+
 ## Specification
 
 - DSV-Standard zur Datenübermittlung "Format 7" (external, DE): https://www.dsv.de/de/service/formulare/schwimmen/
