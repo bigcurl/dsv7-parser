@@ -18,6 +18,7 @@ Gem::Specification.new do |spec|
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = spec.homepage
   spec.metadata['changelog_uri'] = spec.homepage
+  spec.metadata['documentation_uri'] = 'https://www.rubydoc.info/gems/dsv7-parser'
   spec.metadata['rubygems_mfa_required'] = 'true'
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
@@ -25,6 +26,9 @@ Gem::Specification.new do |spec|
   end
 
   spec.require_paths = ['lib']
+
+  # Include top-level docs in packaged RDoc
+  spec.extra_rdoc_files = ['README.md', 'LICENSE']
 
   # Runtime dependencies (none yet)
   # spec.add_dependency "nokogiri", ">= 1.14"

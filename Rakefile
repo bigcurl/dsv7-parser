@@ -3,6 +3,7 @@
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rubocop/rake_task'
+require 'rdoc/task'
 
 Rake::TestTask.new(:test) do |t|
   t.libs << 'lib'
@@ -22,3 +23,11 @@ task lint: :rubocop
 
 desc 'CI: run tests and lint'
 task ci: %i[test lint]
+
+desc 'Generate RDoc documentation into doc/'
+RDoc::Task.new(:rdoc) do |rdoc|
+  rdoc.rdoc_dir = 'doc'
+  rdoc.main = 'README.md'
+  rdoc.title = 'dsv7-parser'
+  rdoc.rdoc_files.include('README.md', 'lib/**/*.rb')
+end
