@@ -13,8 +13,9 @@ class Dsv7CoverageTopupTest < Minitest::Test
     schema = Dsv7::Validator::WkSchema.new(@result)
     # NACHWEIS: [:datum, true], [:datum, false], [:nachweis_bahn, true]
     schema.validate_element('NACHWEIS', ['01.01.2024', '', '30'], 5)
-    assert_includes @result.errors,
-                    "Element NACHWEIS, attribute 3: invalid Bahnlänge '30' (allowed: 25, 50, FW, AL) (line 5)"
+    expected = 'Element NACHWEIS, attribute 3: invalid Bahnlänge \'30\' ' \
+               '(allowed: 25, 50, FW, AL) (line 5)'
+    assert_includes @result.errors, expected
   end
 
   def test_enums2_ausuebung_invalid
@@ -23,8 +24,9 @@ class Dsv7CoverageTopupTest < Minitest::Test
     # WETTKAMPF with invalid Ausübung at attribute 7
     attrs = ['1', 'V', '1', '', '100', 'F', 'QQ', 'M', 'SW', '', '']
     schema.validate_element('WETTKAMPF', attrs, 12)
-    assert_includes result.errors,
-                    "Element WETTKAMPF, attribute 7: invalid Ausübung 'QQ' (allowed: GL, BE, AR, ST, WE, GB, X) (line 12)"
+    expected = 'Element WETTKAMPF, attribute 7: invalid Ausübung \'QQ\' ' \
+               '(allowed: GL, BE, AR, ST, WE, GB, X) (line 12)'
+    assert_includes result.errors, expected
   end
 
   def test_enums2_bestenliste_invalid
@@ -33,8 +35,9 @@ class Dsv7CoverageTopupTest < Minitest::Test
     # WETTKAMPF with invalid Bestenliste at attribute 9
     attrs = ['1', 'V', '1', '', '100', 'F', 'GL', 'M', 'ZZ', '', '']
     schema.validate_element('WETTKAMPF', attrs, 13)
-    assert_includes result.errors,
-                    "Element WETTKAMPF, attribute 9: invalid Zuordnung 'ZZ' (allowed: SW, EW, PA, MS, KG, XX) (line 13)"
+    expected = 'Element WETTKAMPF, attribute 9: invalid Zuordnung \'ZZ\' ' \
+               '(allowed: SW, EW, PA, MS, KG, XX) (line 13)'
+    assert_includes result.errors, expected
   end
 
   def test_enums2_geschlecht_erw_invalid
@@ -43,8 +46,9 @@ class Dsv7CoverageTopupTest < Minitest::Test
     # WERTUNG: invalid Geschlecht Erw at attribute 7
     attrs = ['1', 'V', '1', 'JG', '0', '', 'Q', 'OFFEN']
     schema.validate_element('WERTUNG', attrs, 8)
-    assert_includes result.errors,
-                    "Element WERTUNG, attribute 7: invalid Geschlecht 'Q' (allowed: M, W, X, D) (line 8)"
+    expected = 'Element WERTUNG, attribute 7: invalid Geschlecht \'Q\' ' \
+               '(allowed: M, W, X, D) (line 8)'
+    assert_includes result.errors, expected
   end
 
   def test_enums2_nichtwertung_grund_invalid
@@ -53,8 +57,9 @@ class Dsv7CoverageTopupTest < Minitest::Test
     # PERSONENERGEBNIS: invalid Grund der Nichtwertung at attribute 7
     attrs = ['1', '1', 'V', '1', '1', '00:59:59,99', 'XX', '', '']
     schema.validate_element('PERSONENERGEBNIS', attrs, 20)
-    assert_includes result.errors,
-                    "Element PERSONENERGEBNIS, attribute 7: invalid Grund der Nichtwertung 'XX' (allowed: DS, NA, AB, AU, ZU) (line 20)"
+    expected = 'Element PERSONENERGEBNIS, attribute 7: invalid Grund der Nichtwertung \'XX\' ' \
+               '(allowed: DS, NA, AB, AU, ZU) (line 20)'
+    assert_includes result.errors, expected
   end
 
   def test_common_betrag_invalid
@@ -62,24 +67,26 @@ class Dsv7CoverageTopupTest < Minitest::Test
     schema = Dsv7::Validator::WkSchema.new(result)
     # MELDEGELD: invalid Betrag format
     schema.validate_element('MELDEGELD', ['EINZELMELDEGELD', '2.00', ''], 30)
-    assert_includes result.errors,
-                    "Element MELDEGELD, attribute 2: invalid Betrag '2.00' (expected x,yy) (line 30)"
+    expected = 'Element MELDEGELD, attribute 2: invalid Betrag \'2.00\' ' \
+               '(expected x,yy) (line 30)'
+    assert_includes result.errors, expected
   end
 
   def test_enums2_meldegeld_typ_invalid
     result = Dsv7::Validator::Result.new
     schema = Dsv7::Validator::WkSchema.new(result)
     schema.validate_element('MELDEGELD', ['BADTYPE', '2,00', ''], 31)
-    assert_includes result.errors,
-                    "Element MELDEGELD, attribute 1: invalid Meldegeld Typ 'BADTYPE' (line 31)"
+    expected = 'Element MELDEGELD, attribute 1: invalid Meldegeld Typ \'BADTYPE\' (line 31)'
+    assert_includes result.errors, expected
   end
 
   def test_datetime_uhrzeit_invalid_format
     result = Dsv7::Validator::Result.new
     schema = Dsv7::Validator::WkSchema.new(result)
     schema.validate_element('MELDESCHLUSS', ['01.01.2024', '1200'], 40)
-    assert_includes result.errors,
-                    "Element MELDESCHLUSS, attribute 2: invalid Uhrzeit '1200' (expected HH:MM) (line 40)"
+    expected = 'Element MELDESCHLUSS, attribute 2: invalid Uhrzeit \'1200\' ' \
+               '(expected HH:MM) (line 40)'
+    assert_includes result.errors, expected
   end
 
   def test_validator_unsupported_input_raises

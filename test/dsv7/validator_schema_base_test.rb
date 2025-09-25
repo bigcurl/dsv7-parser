@@ -20,7 +20,7 @@ class Dsv7ValidatorSchemaBaseTest < Minitest::Test
     # ERZEUGER expects 3 attributes
     schema.validate_element('ERZEUGER', %w[a], 7)
     assert_includes @result.errors,
-                    "Element ERZEUGER: expected 3 attributes, got 1 (line 7)"
+                    'Element ERZEUGER: expected 3 attributes, got 1 (line 7)'
   end
 
   def test_attribute_count_match_and_type_checks_ok
