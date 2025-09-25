@@ -10,7 +10,15 @@ This repo contains a Ruby gem stub for parsing and validating DSV7 files (German
 - `lib/dsv7/parser.rb` — parser namespace and version loader
 - `specification/dsv7/dsv7_specification.md` — cleaned, structured spec text
 - `test/dsv7/*_test.rb` — Minitest suite covering validator behavior
-- `Rakefile` — `rake ci` (default), `rake rubocop`
+- `Rakefile` — `rake` (default: tests + rubocop), `rake ci`, `rake rubocop`
+- `lib/dsv7/stream.rb` — IO helpers (BOM, UTF‑8, CR/LF handling)
+- `lib/dsv7/lex.rb` — lexical helpers (FORMAT, element split)
+- `lib/dsv7/validator/line_analyzer.rb` — streaming line analyzer + orchestration
+- `lib/dsv7/validator/line_analyzer_common.rb` — list‑specific analyzer mixins
+- `lib/dsv7/validator/schemas/*.rb` — per‑list attribute schemas
+- `lib/dsv7/validator/types/*.rb` — datatype and enum checks
+- `lib/dsv7/parser/engine.rb` — streaming parser implementation
+- `lib/dsv7/parser/io_util.rb` — parser IO utilities
 
 ## Dev Quick Start
 
@@ -61,7 +69,18 @@ From `specification/dsv7/dsv7_specification.md` → section “Allgemeines” an
 - Filenames
   - When validating by path, warns if the filename does not match `^\d{4}-\d{2}-\d{2}-[^.]+\.DSV7$`.
 
-What is not implemented yet: element‑level schemas; datatype checking; normalization of `Ort`/`Zusatz` pieces beyond the filename pattern warning; full cross‑element ordering/refs.
+- Element schemas and datatypes
+  - Per‑list element schemas enforce exact attribute counts and required/optional positions.
+  - Datatype checks implemented: `ZK`, `Zahl`, `Betrag`, `Zeit`, `Datum`, `Uhrzeit`, plus many enums
+    (e.g., `Technik`, `Ausübung`, `Geschlecht`, `Wettkampfart`, `Wertungstyp`, `JG/AK`).
+  - Cross‑field rule example: `MELDEGELD` with `WKMELDEGELD` requires Wettkampfnr (attr 3).
+  - Accepts synonymous element names where found in the wild (e.g., `STAFFELERGEBNIS`/`STERGEBNIS`).
+- Cardinality checks
+  - Enforces required presence and max occurrences per list type (WKDL, VML, ERG, VRL).
+
+What is not implemented yet (or partial): normalization of `Ort`/`Zusatz` beyond filename pattern; full
+cross‑element ordering/refs (beyond cardinalities); some rarely used elements (e.g., PFLICHTZEIT) are
+intentionally deferred pending clearer examples.
 
 ## Minimal Valid Example
 
@@ -81,21 +100,22 @@ Notes:
 - Common helpers in tests:
   - `format_line(type = 'Wettkampfdefinitionsliste', version = '7')`
   - `validate_string(content)` → `Dsv7::Validator.validate(content)`
-- Existing coverage slices:
-  - `validator_test.rb` — happy‑path and envelope errors.
-  - `validator_format_syntax_test.rb` — FORMAT syntax, list types, whitespace.
-  - `validator_comments_test.rb` — comment stripping and balance checks.
-  - `validator_encoding_test.rb` — BOM/UTF‑8/CRLF behaviors.
-  - `validator_filename_test.rb` — filename pattern warnings.
-  - `validator_whitespace_test.rb` — empty and comment‑only files.
+- Existing coverage slices (examples):
+  - Validator envelope and syntax: `validator_test.rb`, `validator_format_syntax_test.rb`,
+    `validator_comments_test.rb`, `validator_encoding_test.rb`, `validator_filename_test.rb`,
+    `validator_whitespace_test.rb`.
+  - Element schemas and datatypes: `validator_schema_base_test.rb`, `validator_wkdl_attributes_test.rb`.
+  - List‑specific suites: `validator_vereinsmeldeliste_*_test.rb`, `validator_wettkampfergebnisliste_*_test.rb`,
+    `validator_vereinsergebnisliste_*_test.rb`.
+  - Parser: `parser_*_test.rb` (including end‑to‑end `e2e_*_test.rb`).
 
 ## Suggested Next Steps
 
-- Add unit tests mapping more of “Allgemeines” and adjacent sections:
-  - Explicit checks for “no content after DATEIENDE” (already present), and acceptance of comment‑only lines after it.
-  - Additional filename examples from the spec (umlaut mappings, max length, numbering `Ort1`, `Ort2`).
-  - Datatype conformance tests as scaffolding for future element‑schema validation.
-- Implement element schema parsing (SAX‑style) to validate attributes and datatypes.
+- Extend schemas to remaining/rare elements (e.g., `PFLICHTZEIT`) once examples are clarified.
+- Add cross‑element reference/order checks (e.g., section and event numbering consistency).
+- Expand filename normalization checks (umlaut mappings, max length, numeric suffixes like `Ort1`).
+- Harden parser/validator against additional real‑world quirks (document with tests).
+- Update README with Parser streaming examples and advanced validation usage.
 
 # Coding Guidelines for dsv7-parser
 
@@ -131,9 +151,10 @@ Concise conventions for contributing code and tests to this repo. Focus is on a 
 
 ## Public API Expectations
 
-- Single entrypoint: `Dsv7::Validator.validate(input)` supports IO, file path, or content String.
-- Raise `ArgumentError` for unsupported input types.
-- Do not print to stdout/stderr in library code; communicate via return values.
+- Validator: `Dsv7::Validator.validate(input)` supports IO, file path, or content String.
+- Parser: `Dsv7::Parser.parse(input)`, plus list‑specific `parse_*` helpers, yield events
+  `[:format|:element|:end, payload, line_number]` and can be used as enumerators or with blocks.
+- Raise `ArgumentError` for unsupported input types; never print to stdout/stderr in library code.
 
 ## Errors, Warnings, Messages
 
@@ -185,13 +206,17 @@ Concise conventions for contributing code and tests to this repo. Focus is on a 
 
 - `lib/dsv7/validator.rb` — public entrypoint `Dsv7::Validator.validate(...)`
 - `lib/dsv7/validator/core.rb` — core stream pipeline (BOM/encoding, line parsing)
+- `lib/dsv7/validator/line_analyzer.rb` — per‑line orchestration and finish checks
 - `lib/dsv7/validator/result.rb` — result container (`errors`, `warnings`, `valid?`)
 - `lib/dsv7/parser.rb` — parser namespace and version loader
+- `lib/dsv7/parser/engine.rb` — streaming parser core
 - `specification/dsv7/dsv7_specification.md` — structured spec text
 - `test/dsv7/*_test.rb` — Minitest suite
-- `Rakefile` — `rake test` (default), `rake rubocop`
+- `Rakefile` — `rake` (default: tests + rubocop), `rake ci`, `rake rubocop`
 
-Spec notes driving current validator behavior (from “Allgemeines”): require `FORMAT:<Listentyp>;7;`, final `DATEIENDE`, UTF‑8 without BOM, inline comment handling, semicolon on data lines, allowed list types, and filename pattern warnings.
+Spec notes driving current behavior: require `FORMAT:<Listentyp>;7;`, final `DATEIENDE`, UTF‑8 without BOM,
+inline comment handling, semicolon on data lines, allowed list types, filename pattern warnings, and
+element/datatype enforcement per list type.
 
 ## Patch Discipline
 
