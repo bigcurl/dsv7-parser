@@ -15,6 +15,8 @@ module Dsv7
   class Validator
     # Handles line-by-line structural checks for WKDL-specific logic
     module LineAnalyzerWk
+      private
+
       def track_wk_element(trimmed)
         return unless @result.list_type == 'Wettkampfdefinitionsliste'
 
@@ -47,6 +49,8 @@ module Dsv7
 
     # Handles line-by-line structural checks for VML-specific logic
     module LineAnalyzerVml
+      private
+
       def track_vml_element(trimmed)
         return unless @result.list_type == 'Vereinsmeldeliste'
 
@@ -79,6 +83,8 @@ module Dsv7
 
     # Handles line-by-line checks for Wettkampfergebnisliste
     module LineAnalyzerErg
+      private
+
       def track_erg_element(trimmed)
         return unless @result.list_type == 'Wettkampfergebnisliste'
 
@@ -113,6 +119,8 @@ module Dsv7
 
     # Handles line-by-line checks for Vereinsergebnisliste
     module LineAnalyzerVrl
+      private
+
       def track_vrl_element(trimmed)
         return unless @result.list_type == 'Vereinsergebnisliste'
 

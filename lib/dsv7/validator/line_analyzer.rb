@@ -143,6 +143,8 @@ module Dsv7
         validate_erg_line(trimmed, line_number)
         validate_vrl_line(trimmed, line_number)
       end
+      # Ensure setup helper is not part of the public API
+      private :init_schemas_and_counters
     end
   end
 end
