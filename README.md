@@ -1,6 +1,6 @@
 # dsv7-parser
 
-Ruby gem stub for a SAX parser targeting the DSV7 swim file format.
+Ruby gem for a SAX parser targeting the DSV7 swim file format.
 
 Requirements
 
