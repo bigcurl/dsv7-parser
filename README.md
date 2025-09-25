@@ -12,7 +12,7 @@ Requirements
 
 ## Validator
 
-Basic envelope checks plus WKDL and VML element validation are available via one entrypoint:
+Basic envelope checks plus element validation for all four list types (WKDL, VML, ERG, VRL) are available via one entrypoint:
 
 ```
 require 'dsv7/parser'
@@ -107,22 +107,34 @@ Validated VML elements: ERZEUGER, VERANSTALTUNG, ABSCHNITT, WETTKAMPF, VEREIN,
 ANSPRECHPARTNER, KARIMELDUNG, KARIABSCHNITT, TRAINER, PNMELDUNG, HANDICAP,
 STARTPN, STMELDUNG, STARTST, STAFFELPERSON.
 
+Validated WKDL elements: ERZEUGER, VERANSTALTUNG, VERANSTALTUNGSORT, AUSSCHREIBUNGIMNETZ,
+VERANSTALTER, AUSRICHTER, MELDEADRESSE, MELDESCHLUSS, BANKVERBINDUNG, BESONDERES,
+NACHWEIS, ABSCHNITT, WETTKAMPF, WERTUNG, MELDEGELD.
+
+Validated ERG elements: ERZEUGER, VERANSTALTUNG, VERANSTALTER, AUSRICHTER, ABSCHNITT,
+KAMPFGERICHT, WETTKAMPF, WERTUNG, VEREIN, PNERGEBNIS, PNZWISCHENZEIT, PNREAKTION,
+STAFFELERGEBNIS/STERGEBNIS, STAFFELPERSON, STZWISCHENZEIT, STABLOESE.
+
+Validated VRL elements: ERZEUGER, VERANSTALTUNG, VERANSTALTER, AUSRICHTER, ABSCHNITT,
+KAMPFGERICHT, WETTKAMPF, WERTUNG, VEREIN, PERSON, PERSONENERGEBNIS, PNZWISCHENZEIT,
+PNREAKTION, STAFFEL, STAFFELPERSON, STAFFELERGEBNIS/STERGEBNIS, STZWISCHENZEIT, STABLOESE.
+
 Common error and warning examples:
 
 ```
 # 1) Unknown list type and missing DATEIENDE
 bad = "FORMAT:Unbekannt;7;\n"
 r = Dsv7::Validator.validate(bad)
-r.errors.include?("Unknown list type in FORMAT: 'Unbekannt'")
+r.errors.any? { |e| e.include?("Unknown list type in FORMAT: 'Unbekannt'") }
 r.errors.include?("Missing 'DATEIENDE' terminator line")
 
 # 2) Unsupported version
 r = Dsv7::Validator.validate("FORMAT:Vereinsergebnisliste;6;\nDATEIENDE\n")
-r.errors.include?("Unsupported format version '6', expected '7'")
+r.errors.any? { |e| e.include?("Unsupported format version '6', expected '7'") }
 
 # 3) Unbalanced comment delimiters
 r = Dsv7::Validator.validate("FORMAT:Vereinsmeldeliste;7; (* open\nDATEIENDE\n")
-r.errors.any? { |e| e.include?('Unmatched comment delimiters on line') }
+r.errors.any? { |e| e.include?('Unmatched comment delimiters') }
 
 # 4) CRLF detection (warning only)
 crlf = "FORMAT:Vereinsmeldeliste;7;\r\nDATEIENDE\r\n"
@@ -132,7 +144,7 @@ r.warnings        # => ['CRLF line endings detected']
 
 # 5) Missing delimiter ';' in a data line
 r = Dsv7::Validator.validate("FORMAT:Vereinsmeldeliste;7;\nDATA no semicolon\nDATEIENDE\n")
-r.errors.include?("Missing attribute delimiter ';' on line 2")
+r.errors.any? { |e| e.include?("Missing attribute delimiter ';'") }
 
 # 6) Filename pattern warning
 File.write('tmp/badname.txt', "FORMAT:Vereinsmeldeliste;7;\nDATEIENDE\n")
