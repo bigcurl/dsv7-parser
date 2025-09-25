@@ -44,7 +44,7 @@ class Dsv7ValidatorVrlExtraTest < Minitest::Test
   def test_wertung_invalid_wk_art
     content = vrl_head.sub('WERTUNG:1;V;1;JG;0;;;OFFEN;', 'WERTUNG:1;A;1;JG;0;;;OFFEN;') + vrl_tail
     r = validate_string(content)
-    msg = "Element WERTUNG, attribute 2: invalid Wettkampfart 'A' (allowed: V, Z, F, E) on line 8"
+    msg = "Element WERTUNG, attribute 2: invalid Wettkampfart 'A' (allowed: V, Z, F, E) (line 8)"
     assert_includes r.errors, msg
   end
 

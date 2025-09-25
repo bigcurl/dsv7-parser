@@ -50,7 +50,7 @@ class Dsv7ValidatorErgTest < Minitest::Test
     bad = erg_minimal.sub('WETTKAMPF:1;A;', 'WETTKAMPF:1;Q;')
     r2 = validate_string(bad)
     msg = "Element WETTKAMPF, attribute 2: invalid Wettkampfart 'Q' " \
-          '(allowed: V, Z, F, E, A, N) on line 7'
+          '(allowed: V, Z, F, E, A, N) (line 7)'
     assert_includes r2.errors, msg
   end
 end

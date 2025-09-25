@@ -43,7 +43,7 @@ class Dsv7ValidatorErgElementsTest < Minitest::Test
           "#{erg_tail}"
     r_bad = validate_string(bad)
     msg = 'Element PNERGEBNIS, attribute 14: invalid Zeit ' \
-          "'1:00,82' (expected HH:MM:SS,hh) on line 10"
+          "'1:00,82' (expected HH:MM:SS,hh) (line 10)"
     assert_includes r_bad.errors, msg
   end
 
@@ -62,7 +62,7 @@ class Dsv7ValidatorErgElementsTest < Minitest::Test
           "#{erg_tail}"
     r2 = validate_string(bad)
     msg2 = "Element PNREAKTION, attribute 4: invalid Reaktionsart 'K' " \
-           '(allowed: +, -) on line 10'
+           '(allowed: +, -) (line 10)'
     assert_includes r2.errors, msg2
   end
 

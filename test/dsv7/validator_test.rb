@@ -49,7 +49,7 @@ class Dsv7ValidatorTest < Minitest::Test
     DSV
 
     result = validate_string(content)
-    assert_includes result.errors, "Unknown list type in FORMAT: 'Unbekannt'"
+    assert_includes result.errors, "Unknown list type in FORMAT: 'Unbekannt' (line 1)"
   end
 
   def test_version_must_be_seven
@@ -59,7 +59,7 @@ class Dsv7ValidatorTest < Minitest::Test
     DSV
 
     result = validate_string(content)
-    assert_includes result.errors, "Unsupported format version '6', expected '7'"
+    assert_includes result.errors, "Unsupported format version '6', expected '7' (line 1)"
   end
 
   def test_dateiende_must_be_present

@@ -24,7 +24,7 @@ module Dsv7
           val = attrs[i]
 
           if (val.nil? || val.empty?) && required
-            add_error("Element #{name}: missing required attribute #{i + 1} on line #{line_number}")
+            add_error("Element #{name}: missing required attribute #{i + 1} (line #{line_number})")
             next
           end
           next if val.nil? || val.empty?

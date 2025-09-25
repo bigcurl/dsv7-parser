@@ -18,7 +18,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Betrag '#{val}' (expected x,yy) " \
-          "on line #{line_number}"
+          "(line #{line_number})"
         )
       end
 
@@ -30,7 +30,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: Einzelstrecke out of range '#{val}' " \
-          "(allowed 1..25000 or 0) on line #{line_number}"
+          "(allowed 1..25000 or 0) (line #{line_number})"
         )
       end
 

@@ -72,19 +72,19 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
     result = validate_string(invalid_date_time_content)
     assert_includes result.errors,
                     "Element MELDESCHLUSS, attribute 1: invalid Datum '2024-01-01' " \
-                    '(expected TT.MM.JJJJ) on line 9'
+                    '(expected TT.MM.JJJJ) (line 9)'
   end
 
   def test_invalid_time_out_of_range_is_rejected
     result = validate_string(invalid_date_time_content)
     assert_includes result.errors,
-                    "Element MELDESCHLUSS, attribute 2: time out of range '24:00' on line 9"
+                    "Element MELDESCHLUSS, attribute 2: time out of range '24:00' (line 9)"
   end
 
   def test_impossible_abschnitt_date_is_rejected
     result = validate_string(invalid_date_time_content)
     assert_includes result.errors,
-                    "Element ABSCHNITT, attribute 2: impossible date '32.13.2024' on line 10"
+                    "Element ABSCHNITT, attribute 2: impossible date '32.13.2024' (line 10)"
   end
 
   # moved to Dsv7ValidatorWkdlAttributesMoreTest
@@ -104,7 +104,7 @@ class Dsv7ValidatorWkdlAttributesTest < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element ABSCHNITT, attribute 6: invalid Relative Angabe 'K' " \
-                    '(allowed: J, N) on line 10'
+                    '(allowed: J, N) (line 10)'
   end
 end
 
@@ -140,23 +140,23 @@ class Dsv7ValidatorWkdlAttributesMoreTest < Minitest::Test
     content = wk_head + wk_body(meldegeld_line: 'MELDEGELD:WKMELDEGELD;2,00;;') + wk_tail
     result = validate_string(content)
     assert_includes result.errors,
-                    "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line 13"
+                    "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) (line 13)"
   end
 
   def test_invalid_bahnlaenge
     r = validate_string(invalid_bahn_technik_content)
     assert_includes r.errors,
                     "Element VERANSTALTUNG, attribute 3: invalid Bahnlänge '17' " \
-                    '(allowed: 16, 20, 25, 33, 50, FW, X) on line 3'
+                    '(allowed: 16, 20, 25, 33, 50, FW, X) (line 3)'
   end
 
   def test_invalid_technik_and_einzelstrecke
     r = validate_string(invalid_bahn_technik_content)
     assert_includes r.errors,
                     "Element WETTKAMPF, attribute 5: Einzelstrecke out of range '30000' " \
-                    '(allowed 1..25000 or 0) on line 11'
+                    '(allowed 1..25000 or 0) (line 11)'
     assert_includes r.errors,
                     "Element WETTKAMPF, attribute 6: invalid Technik 'Q' " \
-                    '(allowed: F, R, B, S, L, X) on line 11'
+                    '(allowed: F, R, B, S, L, X) (line 11)'
   end
 end

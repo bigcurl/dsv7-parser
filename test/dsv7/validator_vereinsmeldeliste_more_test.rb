@@ -64,7 +64,7 @@ class Dsv7ValidatorVmlMoreTest < Minitest::Test
     )
     r = validate_string(content)
     assert_includes r.errors,
-                    'Element VEREIN: missing required attribute 4 on line 6'
+                    'Element VEREIN: missing required attribute 4 (line 6)'
   end
 
   # Datatypes/enums
@@ -85,7 +85,7 @@ class Dsv7ValidatorVmlMoreTest < Minitest::Test
                     "Element VEREIN, attribute 2: invalid Zahl 'abc' (line 6)"
     assert_includes r.errors,
                     "Element VEREIN, attribute 4: invalid Land 'DE' " \
-                    '(expected FINA code, e.g., GER) on line 6'
+                    '(expected FINA code, e.g., GER) (line 6)'
   end
 end
 # End of first batch; keep class size in check
@@ -101,7 +101,7 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element WETTKAMPF, attribute 2: invalid Wettkampfart 'Q' " \
-                    '(allowed: V, Z, F, E) on line 5'
+                    '(allowed: V, Z, F, E) (line 5)'
   end
 
   def test_wettkampf_invalid_technik
@@ -109,7 +109,7 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element WETTKAMPF, attribute 6: invalid Technik 'Q' " \
-                    '(allowed: F, R, B, S, L, X) on line 5'
+                    '(allowed: F, R, B, S, L, X) (line 5)'
   end
 
   def test_wettkampf_invalid_ausuebung
@@ -117,7 +117,7 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element WETTKAMPF, attribute 7: invalid Ausübung 'ZZ' " \
-                    '(allowed: GL, BE, AR, ST, WE, GB, X) on line 5'
+                    '(allowed: GL, BE, AR, ST, WE, GB, X) (line 5)'
   end
 
   def test_wettkampf_invalid_geschlecht
@@ -125,7 +125,7 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element WETTKAMPF, attribute 8: invalid Geschlecht 'D' " \
-                    '(allowed: M, W, X) on line 5'
+                    '(allowed: M, W, X) (line 5)'
   end
 
   def test_pnmeldung_geschlecht_d_is_accepted
@@ -143,7 +143,7 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     assert_includes r.errors, "Element PNMELDUNG, attribute 5: invalid Zahl '199O' (line 8)"
     assert_includes r.errors,
                     "Element PNMELDUNG, attribute 8: invalid Land 'DE' " \
-                    '(expected FINA code, e.g., GER) on line 8'
+                    '(expected FINA code, e.g., GER) (line 8)'
   end
 
   def vml_minimal
@@ -163,7 +163,7 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     content = vml_minimal.sub('DATEIENDE', "STARTPN:1;1;25:00:00,00\nDATEIENDE")
     r = validate_string(content)
     assert_includes r.errors,
-                    "Element STARTPN, attribute 3: time out of range '25:00:00,00' on line 8"
+                    "Element STARTPN, attribute 3: time out of range '25:00:00,00' (line 8)"
   end
 
   def test_startst_invalid_zeit_format
@@ -171,7 +171,7 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     r = validate_string(content)
     assert_includes r.errors,
                     "Element STARTST, attribute 3: invalid Zeit 'AA:BB:CC,hh' " \
-                    '(expected HH:MM:SS,hh) on line 8'
+                    '(expected HH:MM:SS,hh) (line 8)'
   end
 
   def test_stmeldung_wertung_and_jgak_variants
@@ -186,8 +186,8 @@ class Dsv7ValidatorVmlMoreBTest < Minitest::Test
     r = validate_string(content)
     assert_includes r.errors,
                     "Element STMELDUNG, attribute 3: invalid Wertungstyp 'XX' " \
-                    '(allowed: JG, AK) on line 8'
-    assert_includes r.errors, "Element STMELDUNG, attribute 4: invalid JG/AK '!!' on line 8"
+                    '(allowed: JG, AK) (line 8)'
+    assert_includes r.errors, "Element STMELDUNG, attribute 4: invalid JG/AK '!!' (line 8)"
   end
 
   def test_comment_only_lines_after_dateiende_are_ignored

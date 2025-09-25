@@ -8,7 +8,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Technik '#{val}' " \
-          "(allowed: F, R, B, S, L, X) on line #{line_number}"
+          "(allowed: F, R, B, S, L, X) (line #{line_number})"
         )
       end
 
@@ -17,7 +17,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Ausübung '#{val}' " \
-          "(allowed: GL, BE, AR, ST, WE, GB, X) on line #{line_no}"
+          "(allowed: GL, BE, AR, ST, WE, GB, X) (line #{line_no})"
         )
       end
 
@@ -26,7 +26,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, X) " \
-          "on line #{line_no}"
+          "(line #{line_no})"
         )
       end
 
@@ -35,7 +35,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Zuordnung '#{val}' " \
-          "(allowed: SW, EW, PA, MS, KG, XX) on line #{line_no}"
+          "(allowed: SW, EW, PA, MS, KG, XX) (line #{line_no})"
         )
       end
 
@@ -44,7 +44,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Wertungstyp '#{val}' (allowed: JG, AK) " \
-          "on line #{line_number}"
+          "(line #{line_number})"
         )
       end
 
@@ -52,7 +52,7 @@ module Dsv7
         return if val.match?(/^\d{1,4}$/) || val.match?(/^[ABCDEJ]$/) || val.match?(/^\d{2,3}\+$/)
 
         add_error(
-          "Element #{name}, attribute #{idx}: invalid JG/AK '#{val}' on line #{line_number}"
+          "Element #{name}, attribute #{idx}: invalid JG/AK '#{val}' (line #{line_number})"
         )
       end
 
@@ -61,7 +61,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, X, D) " \
-          "on line #{line_number}"
+          "(line #{line_number})"
         )
       end
 
@@ -70,7 +70,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Geschlecht '#{val}' (allowed: M, W, D) " \
-          "on line #{line_number}"
+          "(line #{line_number})"
         )
       end
 
@@ -81,7 +81,7 @@ module Dsv7
         return if allowed.include?(val.upcase)
 
         add_error(
-          "Element #{name}, attribute #{idx}: invalid Meldegeld Typ '#{val}' on line #{line_number}"
+          "Element #{name}, attribute #{idx}: invalid Meldegeld Typ '#{val}' (line #{line_number})"
         )
       end
 
@@ -90,7 +90,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Reaktionsart '#{val}' (allowed: +, -) " \
-          "on line #{line_number}"
+          "(line #{line_number})"
         )
       end
 
@@ -99,7 +99,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Nachtragskennzeichen '#{val}' " \
-          "(allowed: E, F, N) on line #{line_number}"
+          "(allowed: E, F, N) (line #{line_number})"
         )
       end
 
@@ -109,7 +109,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Grund der Nichtwertung '#{val}' " \
-          "(allowed: #{allowed.join(', ')}) on line #{line_number}"
+          "(allowed: #{allowed.join(', ')}) (line #{line_number})"
         )
       end
     end

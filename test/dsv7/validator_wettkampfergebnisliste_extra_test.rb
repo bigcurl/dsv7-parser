@@ -75,9 +75,9 @@ class Dsv7ValidatorErgExtraTest < Minitest::Test
                         'VERANSTALTUNG:Name;Ort;34;SCHNELLZEIT;') + erg_tail
     r = validate_string(bad)
     msg1 = "Element VERANSTALTUNG, attribute 3: invalid Bahnlänge '34' (allowed: " \
-           '16, 20, 25, 33, 50, FW, X) on line 3'
+           '16, 20, 25, 33, 50, FW, X) (line 3)'
     msg2 = "Element VERANSTALTUNG, attribute 4: invalid Zeitmessung 'SCHNELLZEIT' (allowed: " \
-           'HANDZEIT, AUTOMATISCH, HALBAUTOMATISCH) on line 3'
+           'HANDZEIT, AUTOMATISCH, HALBAUTOMATISCH) (line 3)'
     assert_includes r.errors, msg1
     assert_includes r.errors, msg2
   end
@@ -87,9 +87,9 @@ class Dsv7ValidatorErgExtraTest < Minitest::Test
                         'ABSCHNITT:1;31.02.2024;24:00;N;') + erg_tail
     r = validate_string(bad)
     assert_includes r.errors,
-                    "Element ABSCHNITT, attribute 2: impossible date '31.02.2024' on line 6"
+                    "Element ABSCHNITT, attribute 2: impossible date '31.02.2024' (line 6)"
     assert_includes r.errors,
-                    "Element ABSCHNITT, attribute 3: time out of range '24:00' on line 6"
+                    "Element ABSCHNITT, attribute 3: time out of range '24:00' (line 6)"
   end
 end
 
@@ -102,7 +102,7 @@ class Dsv7ValidatorErgExtra2Test < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element VEREIN, attribute 4: invalid Land 'DE' " \
-                    '(expected FINA code, e.g., GER) on line 9'
+                    '(expected FINA code, e.g., GER) (line 9)'
   end
 
   def test_wertung_invalid_wert_typ_and_jgak
@@ -111,9 +111,9 @@ class Dsv7ValidatorErgExtra2Test < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element WERTUNG, attribute 4: invalid Wertungstyp 'XX' " \
-                    '(allowed: JG, AK) on line 8'
+                    '(allowed: JG, AK) (line 8)'
     assert_includes r.errors,
-                    "Element WERTUNG, attribute 5: invalid JG/AK 'foo' on line 8"
+                    "Element WERTUNG, attribute 5: invalid JG/AK 'foo' (line 8)"
   end
 
   def test_wettkampf_optional_wk_art_invalid
@@ -122,7 +122,7 @@ class Dsv7ValidatorErgExtra2Test < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element WETTKAMPF, attribute 11: invalid Wettkampfart 'Q' " \
-                    '(allowed: V, Z, F, E) on line 7'
+                    '(allowed: V, Z, F, E) (line 7)'
   end
 
   def test_comment_only_lines_after_dateiende_are_ok

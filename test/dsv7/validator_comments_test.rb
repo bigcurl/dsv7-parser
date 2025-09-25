@@ -21,7 +21,7 @@ class Dsv7ValidatorCommentsTest < Minitest::Test
     DSV
 
     result = validate_string(content)
-    assert_includes result.errors, 'Unmatched comment delimiters on line 2'
+    assert_includes result.errors, 'Unmatched comment delimiters (line 2)'
   end
 
   def test_multiple_inline_comments_in_one_line
@@ -41,7 +41,7 @@ class Dsv7ValidatorCommentsTest < Minitest::Test
       DATEIENDE
     DSV
     result = validate_string(content)
-    assert_includes result.errors, "Missing attribute delimiter ';' on line 2"
+    assert_includes result.errors, "Missing attribute delimiter ';' (line 2)"
   end
 
   def test_multiline_unmatched_comment_reports_both_lines
@@ -52,8 +52,8 @@ class Dsv7ValidatorCommentsTest < Minitest::Test
       DATEIENDE
     DSV
     result = validate_string(content)
-    assert_includes result.errors, 'Unmatched comment delimiters on line 2'
-    assert_includes result.errors, 'Unmatched comment delimiters on line 3'
+    assert_includes result.errors, 'Unmatched comment delimiters (line 2)'
+    assert_includes result.errors, 'Unmatched comment delimiters (line 3)'
   end
 
   def test_comment_only_lines_after_dateiende_are_ok

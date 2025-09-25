@@ -99,6 +99,6 @@ class Dsv7ValidatorFormatSyntaxTest < Minitest::Test
   def test_missing_semicolon_on_data_line_errors
     content = "#{format_line}\nDATA\nDATEIENDE\n"
     result = validate_string(content)
-    assert_includes result.errors, "Missing attribute delimiter ';' on line 2"
+    assert_includes result.errors, "Missing attribute delimiter ';' (line 2)"
   end
 end

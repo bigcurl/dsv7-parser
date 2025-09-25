@@ -61,7 +61,7 @@ class Dsv7ValidatorVrlEdgeTest < Minitest::Test
     bad = "#{vrl_head}STABLOESE:2525;4;E;1;+;00:00:0,30;\n#{vrl_tail}"
     r = validate_string(bad)
     msg = "Element STABLOESE, attribute 6: invalid Zeit '00:00:0,30' " \
-          '(expected HH:MM:SS,hh) on line 10'
+          '(expected HH:MM:SS,hh) (line 10)'
     assert_includes r.errors, msg
   end
 
@@ -74,7 +74,7 @@ class Dsv7ValidatorVrlEdgeTest < Minitest::Test
   def test_person_invalid_geschlecht
     bad = "#{vrl_head}PERSON:Doe, Jane;123456;4711;X;1990;;;GER;;\n#{vrl_tail}"
     r = validate_string(bad)
-    msg = "Element PERSON, attribute 4: invalid Geschlecht 'X' (allowed: M, W, D) on line 10"
+    msg = "Element PERSON, attribute 4: invalid Geschlecht 'X' (allowed: M, W, D) (line 10)"
     assert_includes r.errors, msg
   end
 
@@ -84,7 +84,7 @@ class Dsv7ValidatorVrlEdgeTest < Minitest::Test
           + vrl_tail
     r = validate_string(bad)
     msg = "Element PERSONENERGEBNIS, attribute 9: invalid Nachtragskennzeichen 'K' " \
-          '(allowed: E, F, N) on line 11'
+          '(allowed: E, F, N) (line 11)'
     assert_includes r.errors, msg
   end
 

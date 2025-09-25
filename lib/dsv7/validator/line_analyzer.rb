@@ -64,7 +64,7 @@ module Dsv7
         closes = line.scan('*)').size
         return unless opens != closes
 
-        @result.add_error("Unmatched comment delimiters on line #{line_number}")
+        @result.add_error("Unmatched comment delimiters (line #{line_number})")
       end
 
       def handle_first_effective(trimmed, line_number)
@@ -78,23 +78,40 @@ module Dsv7
 
       def check_format_line(trimmed, line_number)
         m = Dsv7::Lex.parse_format(trimmed)
-        msg = "First non-empty line must be 'FORMAT:<Listentyp>;7;' (line #{line_number})"
-        return @result.add_error(msg) unless m
+        return format_error(line_number) unless m
 
-        lt, ver = m
+        list_type, ver = m
         # Enforce numeric version token for exact syntax compatibility
-        return @result.add_error(msg) unless ver.match?(/^\d+$/)
+        return format_error(line_number) unless ver.match?(/^\d+$/)
 
-        @result.set_format(lt, ver)
-        @result.add_error("Unknown list type in FORMAT: '#{lt}'") unless
-          Validator::ALLOWED_LIST_TYPES.include?(lt)
-        @result.add_error("Unsupported format version '#{ver}', expected '7'") unless ver == '7'
+        @result.set_format(list_type, ver)
+        check_list_type(list_type, line_number)
+        check_format_version(ver, line_number)
+      end
+
+      def format_error(line_number)
+        @result.add_error(
+          "First non-empty line must be 'FORMAT:<Listentyp>;7;' " \
+          "(line #{line_number})"
+        )
+      end
+
+      def check_list_type(list_type, line_number)
+        return if Validator::ALLOWED_LIST_TYPES.include?(list_type)
+
+        @result.add_error("Unknown list type in FORMAT: '#{list_type}' (line #{line_number})")
+      end
+
+      def check_format_version(ver, line_number)
+        return if ver == '7'
+
+        @result.add_error("Unsupported format version '#{ver}', expected '7' (line #{line_number})")
       end
 
       def require_semicolon(trimmed, line_number)
         return if trimmed.include?(';')
 
-        @result.add_error("Missing attribute delimiter ';' on line #{line_number}")
+        @result.add_error("Missing attribute delimiter ';' (line #{line_number})")
       end
 
       def post_validate_positions

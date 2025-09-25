@@ -57,7 +57,7 @@ module Dsv7
         return unless needs_wk
 
         add_error(
-          "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) on line #{line_number}"
+          "Element MELDEGELD: 'WKMELDEGELD' requires Wettkampfnr (attr 3) (line #{line_number})"
         )
       end
     end

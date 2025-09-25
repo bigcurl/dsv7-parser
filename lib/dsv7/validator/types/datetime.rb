@@ -36,25 +36,25 @@ module Dsv7
 
       def datum_format_error(name, idx, val, line_number)
         "Element #{name}, attribute #{idx}: invalid Datum '#{val}' " \
-          "(expected TT.MM.JJJJ) on line #{line_number}"
+          "(expected TT.MM.JJJJ) (line #{line_number})"
       end
 
       def impossible_date_error(name, idx, val, line_number)
-        "Element #{name}, attribute #{idx}: impossible date '#{val}' on line #{line_number}"
+        "Element #{name}, attribute #{idx}: impossible date '#{val}' (line #{line_number})"
       end
 
       def uhrzeit_format_error(name, idx, val, line_number)
         "Element #{name}, attribute #{idx}: invalid Uhrzeit '#{val}' " \
-          "(expected HH:MM) on line #{line_number}"
+          "(expected HH:MM) (line #{line_number})"
       end
 
       def zeit_format_error(name, idx, val, line_number)
         "Element #{name}, attribute #{idx}: invalid Zeit '#{val}' " \
-          "(expected HH:MM:SS,hh) on line #{line_number}"
+          "(expected HH:MM:SS,hh) (line #{line_number})"
       end
 
       def time_out_of_range_error(name, idx, val, line_number)
-        "Element #{name}, attribute #{idx}: time out of range '#{val}' on line #{line_number}"
+        "Element #{name}, attribute #{idx}: time out of range '#{val}' (line #{line_number})"
       end
 
       def parse_zeit_parts(val)

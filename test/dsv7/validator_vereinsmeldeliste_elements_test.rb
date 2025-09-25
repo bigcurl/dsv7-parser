@@ -112,7 +112,7 @@ class Dsv7ValidatorVmlElementsMoreTest < Minitest::Test
     # Attribute 4 is required but empty; keep overall count at 7
     content = vml_minimal.sub('DATEIENDE', "HANDICAP:1;X;Y;;B;C;;\nDATEIENDE")
     r = validate_string(content)
-    assert_includes r.errors, 'Element HANDICAP: missing required attribute 4 on line 8'
+    assert_includes r.errors, 'Element HANDICAP: missing required attribute 4 (line 8)'
   end
 
   def test_handicap_attribute_count_mismatch
@@ -196,7 +196,7 @@ class Dsv7ValidatorVmlHandicapEdgeTest < Minitest::Test
       "HANDICAP:1;;;'Req4';;Req6;;\nDATEIENDE"
     )
     r = validate_string(content)
-    assert_includes r.errors, 'Element HANDICAP: missing required attribute 5 on line 8'
+    assert_includes r.errors, 'Element HANDICAP: missing required attribute 5 (line 8)'
   end
 
   def test_handicap_missing_required_attribute_six
@@ -205,7 +205,7 @@ class Dsv7ValidatorVmlHandicapEdgeTest < Minitest::Test
       "HANDICAP:1;;;'Req4';Req5;;\nDATEIENDE"
     )
     r = validate_string(content)
-    assert_includes r.errors, 'Element HANDICAP: missing required attribute 6 on line 8'
+    assert_includes r.errors, 'Element HANDICAP: missing required attribute 6 (line 8)'
   end
 end
 

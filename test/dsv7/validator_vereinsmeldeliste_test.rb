@@ -46,7 +46,7 @@ class Dsv7ValidatorVmlTest < Minitest::Test
     r = validate_string(bad)
     assert_includes r.errors,
                     "Element ABSCHNITT, attribute 4: invalid Relative Angabe 'K' " \
-                    '(allowed: J, N) on line 4'
+                    '(allowed: J, N) (line 4)'
   end
 
   def test_pnmeldung_geschlecht_restricted
@@ -55,6 +55,6 @@ class Dsv7ValidatorVmlTest < Minitest::Test
     r = validate_string(content)
     assert_includes r.errors,
                     "Element PNMELDUNG, attribute 4: invalid Geschlecht 'X' " \
-                    '(allowed: M, W, D) on line 8'
+                    '(allowed: M, W, D) (line 8)'
   end
 end

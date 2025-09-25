@@ -45,7 +45,7 @@ class Dsv7ValidatorVrlElementsTest < Minitest::Test
           "#{vrl_tail}"
     r = validate_string(bad)
     msg = "Element PERSONENERGEBNIS, attribute 6: invalid Zeit '1:00,82' " \
-          '(expected HH:MM:SS,hh) on line 11'
+          '(expected HH:MM:SS,hh) (line 11)'
     assert_includes r.errors, msg
   end
 
@@ -56,7 +56,7 @@ class Dsv7ValidatorVrlElementsTest < Minitest::Test
           "#{vrl_tail}"
     r = validate_string(bad)
     msg = "Element PERSONENERGEBNIS, attribute 7: invalid Grund der Nichtwertung 'K' " \
-          '(allowed: DS, NA, AB, AU, ZU) on line 11'
+          '(allowed: DS, NA, AB, AU, ZU) (line 11)'
     assert_includes r.errors, msg
   end
 
@@ -78,7 +78,7 @@ class Dsv7ValidatorVrlElementsTest < Minitest::Test
               "#{vrl_tail}"
     r = validate_string(content)
     msg = "Element PNREAKTION, attribute 4: invalid Reaktionsart 'K' " \
-          '(allowed: +, -) on line 12'
+          '(allowed: +, -) (line 12)'
     assert_includes r.errors, msg
   end
 

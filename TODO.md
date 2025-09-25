@@ -2,11 +2,9 @@
 
 * Cardinalities are all in one file (lib/dsv7/validator/cardinality.rb). Split by list type (e.g., wk_cardinality.rb, vml_cardinality.rb, …) to keep files small and grep‑friendly.
 
-- Standardize error/warning phrasing to always include attribute and line numbers
-
 - Extracting allowed enum sets to named constants to reuse across modules
 
-- Add- Add a tiny unit test for Lex.element edge cases (e.g., multiple trailing ;, empty attributes in the middle) to lock in splitting semantics.
+- Add a tiny unit test for Lex.element edge cases (e.g., multiple trailing ;, empty attributes in the middle) to lock in splitting semantics.
 
 - Parser resource handling test: add a test that parses a file path and verifies the   underlying File is closed after enumeration.
 

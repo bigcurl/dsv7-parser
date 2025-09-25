@@ -9,7 +9,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
-          "#{allowed.join(', ')}) on line #{line_number}"
+          "#{allowed.join(', ')}) (line #{line_number})"
         )
       end
 
@@ -19,7 +19,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Zeitmessung '#{val}' (allowed: " \
-          "#{allowed.join(', ')}) on line #{line_number}"
+          "#{allowed.join(', ')}) (line #{line_number})"
         )
       end
 
@@ -28,7 +28,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Land '#{val}' " \
-          "(expected FINA code, e.g., GER) on line #{line_number}"
+          "(expected FINA code, e.g., GER) (line #{line_number})"
         )
       end
 
@@ -38,7 +38,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
-          "#{allowed.join(', ')}) on line #{line_number}"
+          "#{allowed.join(', ')}) (line #{line_number})"
         )
       end
 
@@ -47,7 +47,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Relative Angabe '#{val}' (allowed: J, N) " \
-          "on line #{line_number}"
+          "(line #{line_number})"
         )
       end
 
@@ -56,7 +56,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' " \
-          "(allowed: V, Z, F, E) on line #{line_number}"
+          "(allowed: V, Z, F, E) (line #{line_number})"
         )
       end
 
@@ -66,7 +66,7 @@ module Dsv7
 
         add_error(
           "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' " \
-          "(allowed: V, Z, F, E, A, N) on line #{line_number}"
+          "(allowed: V, Z, F, E, A, N) (line #{line_number})"
         )
       end
     end

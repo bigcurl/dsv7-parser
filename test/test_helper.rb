@@ -14,4 +14,3 @@ begin
 rescue LoadError
   # SimpleCov not available (e.g., without dev/test gems); run tests without coverage
 end
-
