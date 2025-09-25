@@ -1,0 +1,64 @@
+# frozen_string_literal: true
+
+module Dsv7
+  class Validator
+    module WkTypeChecksEnums1
+      def check_bahnl(name, idx, val, line_number, _opts = nil)
+        allowed = %w[16 20 25 33 50 FW X]
+        return if allowed.include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
+          "#{allowed.join(', ')}) on line #{line_number}"
+        )
+      end
+
+      def check_zeitmessung(name, idx, val, line_number, _opts = nil)
+        allowed = %w[HANDZEIT AUTOMATISCH HALBAUTOMATISCH]
+        return if allowed.include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Zeitmessung '#{val}' (allowed: " \
+          "#{allowed.join(', ')}) on line #{line_number}"
+        )
+      end
+
+      def check_land(name, idx, val, line_number, _opts = nil)
+        return if val.match?(/^[A-Z]{3}$/)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Land '#{val}' " \
+          "(expected FINA code, e.g., GER) on line #{line_number}"
+        )
+      end
+
+      def check_nachweis_bahn(name, idx, val, line_number, _opts = nil)
+        allowed = %w[25 50 FW AL]
+        return if allowed.include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Bahnlänge '#{val}' (allowed: " \
+          "#{allowed.join(', ')}) on line #{line_number}"
+        )
+      end
+
+      def check_relativ(name, idx, val, line_number, _opts = nil)
+        return if %w[J N].include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Relative Angabe '#{val}' (allowed: J, N) " \
+          "on line #{line_number}"
+        )
+      end
+
+      def check_wk_art(name, idx, val, line_number, _opts = nil)
+        return if %w[V Z F E].include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' " \
+          "(allowed: V, Z, F, E) on line #{line_number}"
+        )
+      end
+    end
+  end
+end
