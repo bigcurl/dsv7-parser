@@ -11,7 +11,6 @@ module Dsv7
       def initialize(result, filename)
         @result = result
         @filename = filename
-        @element_counts = Hash.new(0)
       end
 
       def call_io(io)

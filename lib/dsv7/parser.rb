@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'parser/version'
-require_relative '../dsv7/validator'
+require_relative 'validator'
 require_relative 'stream'
 require_relative 'lex'
 
@@ -10,16 +10,8 @@ module Dsv7
     class Error < StandardError; end
 
     # Streaming parser for Wettkampfdefinitionsliste (WKDL).
-    #
-    # Usage:
-    # - With block: yields events [:format, payload, line_number],
-    #   [:element, payload, line_number], [:end, nil, line_number]
-    #   payload for :format => { list_type: 'Wettkampfdefinitionsliste', version: '7' }
-    #   payload for :element => { name: 'ERZEUGER', attrs: ['Soft', '1.0', 'mail@example.com'] }
-    # - Without block: returns an Enumerator that yields the same triplets.
-    #
-    # Note: This is a tolerant parser focused on streaming extraction, not validation.
-    # It performs basic stripping of inline comments, BOM handling and UTF-8 scrubbing.
+    # Yields [:format|:element|:end, payload, line_number].
+    # Performs inline comment stripping, tolerates BOM, and scrubs UTF-8.
     def self.parse_wettkampfdefinitionsliste(input, &block)
       enum = Enumerator.new { |y| stream_list(input, y, 'Wettkampfdefinitionsliste') }
       return enum.each(&block) if block_given?
@@ -70,19 +62,23 @@ module Dsv7
 
       def stream_list(input, emitter, expected_list_type)
         state = { ln: 0, saw: false }
-        io = prepare_io(input)
-        each_content_line(io) do |content, ln|
-          state[:ln] = ln
-          break if handle_first_or_emit?(content, ln, emitter, state, expected_list_type)
+        with_io(input) do |io|
+          each_content_line(io) do |content, ln|
+            state[:ln] = ln
+            break if handle_first_or_emit?(content, ln, emitter, state, expected_list_type)
+          end
         end
         emitter << [:end, nil, state[:ln]]
       end
 
-      def prepare_io(input)
+      def with_io(input)
+        close_after = input.is_a?(String) && File.file?(input)
         io = to_io(input)
         Dsv7::Stream.binmode_if_possible(io)
         Dsv7::Stream.read_bom?(io) # parser tolerates BOM
-        io
+        yield io
+      ensure
+        io&.close if close_after
       end
 
       def each_content_line(io)
