@@ -106,7 +106,7 @@ module Dsv7
 
         list_type, version = m
         unless list_type == expected_list_type
-          short = expected_list_type == 'Wettkampfdefinitionsliste' ? 'WKDL' : 'VML'
+          short = parser_short_name(expected_list_type)
           raise Error, "Unsupported list type '#{list_type}' for #{short} parser"
         end
 
@@ -119,6 +119,15 @@ module Dsv7
 
         name, attrs = pair
         emitter << [:element, { name: name, attrs: attrs }, line_number]
+      end
+
+      def parser_short_name(expected_list_type)
+        case expected_list_type
+        when 'Wettkampfdefinitionsliste' then 'WKDL'
+        when 'Vereinsmeldeliste' then 'VML'
+        when 'Wettkampfergebnisliste' then 'ERG'
+        else expected_list_type
+        end
       end
     end
   end

@@ -140,12 +140,13 @@ ensure
 end
 ```
 
-## Parser (Streaming: WKDL and VML)
+## Parser (Streaming: WKDL, VML, ERG)
 
-The parser provides a streaming API for two list types:
+The parser provides a streaming API for three list types:
 
 - Wettkampfdefinitionsliste (WKDL): `Dsv7::Parser.parse_wettkampfdefinitionsliste(...)`
 - Vereinsmeldeliste (VML): `Dsv7::Parser.parse_vereinsmeldeliste(...)`
+- Wettkampfergebnisliste (ERG): `Dsv7::Parser.parse_wettkampfergebnisliste(...)`
 
 It is tolerant and focuses on extracting elements efficiently; use the validator for strict checks.
 
@@ -245,6 +246,24 @@ Dsv7::Parser.parse_vereinsmeldeliste(content) do |type, payload, line_number|
 end
 ```
 
+ERG usage mirrors WKDL as well:
+
+```
+content = <<~DSV
+  FORMAT:Wettkampfergebnisliste;7;
+  ERZEUGER:Soft;1.0;mail@example.com;
+  VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+  ABSCHNITT:1;01.01.2024;10:00;N;
+  WETTKAMPF:1;A;1;;100;F;GL;M;SW;;;
+  VEREIN:SV Hansa Adorf;1234;17;GER;
+  DATEIENDE
+DSV
+
+Dsv7::Parser.parse_wettkampfergebnisliste(content) do |type, payload, line_number|
+  # same :format, :element, :end semantics
+end
+```
+
 Errors and edge cases:
 
 - Raises `Dsv7::Parser::Error` if the first effective line is not a `FORMAT` line.
@@ -256,3 +275,40 @@ Errors and edge cases:
 
 - Tests use Minitest and live under `test/dsv7/`.
 - Version is defined in `lib/dsv7/parser/version.rb`.
+
+## Compact ERG Example
+
+Minimal Wettkampfergebnisliste validation and parsing in one go:
+
+```
+require 'dsv7/parser'
+
+content = <<~DSV
+  FORMAT:Wettkampfergebnisliste;7;
+  ERZEUGER:Soft;1.0;mail@example.com;
+  VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+  VERANSTALTER:Club;
+  AUSRICHTER:Verein;Kontakt;;;;;;kontakt@example.com;
+  ABSCHNITT:1;01.01.2024;10:00;N;
+  WETTKAMPF:1;A;1;;100;F;GL;M;SW;;;
+  WERTUNG:1;V;1;JG;0;;;OFFEN;
+  VEREIN:SV Hansa Adorf;1234;17;GER;
+  DATEIENDE
+DSV
+
+result = Dsv7::Validator.validate(content)
+if result.valid?
+  Dsv7::Parser.parse_wettkampfergebnisliste(content) do |type, payload, line_number|
+    case type
+    when :format
+      # { list_type: 'Wettkampfergebnisliste', version: '7' }
+    when :element
+      # payload: { name: 'ERZEUGER', attrs: ['Soft','1.0','mail@example.com'] }
+    when :end
+      # reached DATEIENDE
+    end
+  end
+else
+  warn "Invalid ERG: #{result.errors.join('; ')}"
+end
+```

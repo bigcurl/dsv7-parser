@@ -1,9 +1,5 @@
 # TODO
 
-- Please write the validator for Wettkampfergebnissliste. Write a unit test for every requirement. run rubocop until there is no error. Integrate and reuse with the existing code as much as possible. You find the specification for Wettkampfergebnisliste in specification/dsv7/dsv7_specification.md
-
-- Please write the Wettkampfergebnissliste for Vereinsergebnisliste. Write a unit test for every requirement. run rubocop until there is no error. Integrate and reuse with the existing code as much as possible. You find the specification for Wettkampfergebnisliste in specification/dsv7/dsv7_specification.md
-
 - Please write the validator for Vereinsergebnisliste. Write a unit test for every requirement. run rubocop until there is no error. Integrate and reuse with the existing code as much as possible. You find the specification for Vereinsergebnisliste in specification/dsv7/dsv7_specification.md
 
 - Please write the parser for Vereinsergebnisliste. Write a unit test for every requirement. run rubocop until there is no error. Integrate and reuse with the existing code as much as possible. You find the specification for Vereinsergebnisliste in specification/dsv7/dsv7_specification.md
