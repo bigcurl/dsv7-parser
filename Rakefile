@@ -11,10 +11,14 @@ Rake::TestTask.new(:test) do |t|
   t.verbose = false
 end
 
-task default: :test
+# Run tests and lint by default
+task default: %i[test lint]
 
 desc 'Run RuboCop'
 RuboCop::RakeTask.new(:rubocop)
 
 desc 'Run all linters'
 task lint: :rubocop
+
+desc 'CI: run tests and lint'
+task ci: %i[test lint]
