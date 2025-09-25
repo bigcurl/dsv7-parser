@@ -10,7 +10,7 @@ This repo contains a Ruby gem stub for parsing and validating DSV7 files (German
 - `lib/dsv7/parser.rb` — parser namespace and version loader
 - `specification/dsv7/dsv7_specification.md` — cleaned, structured spec text
 - `test/dsv7/*_test.rb` — Minitest suite covering validator behavior
-- `Rakefile` — `rake test` (default), `rake rubocop`
+- `Rakefile` — `rake ci` (default), `rake rubocop`
 
 ## Dev Quick Start
 
