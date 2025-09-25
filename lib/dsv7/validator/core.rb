@@ -14,7 +14,7 @@ module Dsv7
       end
 
       def call_io(io)
-        io.binmode
+        Dsv7::Stream.binmode_if_possible(io)
         check_bom_and_rewind(io)
         process_lines(io)
       end
