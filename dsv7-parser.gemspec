@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['maintheme@gmail.com']
 
   spec.summary       = 'SAX parser for the DSV7 swim file format'
-  spec.description   = 'Ruby gem for a DSV7 SAX parser.'
+  spec.description   = 'Ruby gem for a SAX parser targeting the DSV7 swim file format'
   spec.homepage      = 'https://github.com/bigcurl/dsv7-parser'
   spec.license       = 'MIT'
 
