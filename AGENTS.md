@@ -1,6 +1,6 @@
 # Agent Guide for dsv7-parser
 
-This repo contains a Ruby gem stub for parsing and validating DSV7 files (German Swimming Federation, “Format 7”). It already includes a high-level validator and a growing specification captured in Markdown.
+This repo contains a Ruby gem for parsing and validating DSV7 files (German Swimming Federation, “Format 7”). It already includes a high-level validator and a growing specification captured in Markdown.
 
 ## Repo Layout
 
