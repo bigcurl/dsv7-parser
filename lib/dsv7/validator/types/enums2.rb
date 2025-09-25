@@ -84,6 +84,24 @@ module Dsv7
           "Element #{name}, attribute #{idx}: invalid Meldegeld Typ '#{val}' on line #{line_number}"
         )
       end
+
+      def check_reaktion_art(name, idx, val, line_number, _opts = nil)
+        return if %w[+ -].include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Reaktionsart '#{val}' (allowed: +, -) " \
+          "on line #{line_number}"
+        )
+      end
+
+      def check_nachtrag_flag(name, idx, val, line_number, _opts = nil)
+        return if %w[E F N].include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Nachtragskennzeichen '#{val}' " \
+          "(allowed: E, F, N) on line #{line_number}"
+        )
+      end
     end
   end
 end

@@ -59,6 +59,16 @@ module Dsv7
           "(allowed: V, Z, F, E) on line #{line_number}"
         )
       end
+
+      # Wettkampfergebnisliste allows additional values 'A' and 'N'
+      def check_wk_art_erg(name, idx, val, line_number, _opts = nil)
+        return if %w[V Z F E A N].include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Wettkampfart '#{val}' " \
+          "(allowed: V, Z, F, E, A, N) on line #{line_number}"
+        )
+      end
     end
   end
 end

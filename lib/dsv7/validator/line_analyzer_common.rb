@@ -68,5 +68,39 @@ module Dsv7
         @vml_schema.validate_element(name, attrs, line_number)
       end
     end
+
+    # Handles line-by-line checks for Wettkampfergebnisliste
+    module LineAnalyzerErg
+      def track_erg_element(trimmed)
+        return unless @result.list_type == 'Wettkampfergebnisliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, = pair
+        return if name == 'FORMAT'
+        return if name == 'DATEIENDE'
+
+        @erg_elements[name] += 1
+      end
+
+      def validate_erg_list_elements
+        return if @erg_elements.empty?
+
+        ErgCardinality.new(@result, @erg_elements).validate!
+      end
+
+      def validate_erg_line(trimmed, line_number)
+        return unless @result.list_type == 'Wettkampfergebnisliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, attrs = pair
+        return if %w[FORMAT DATEIENDE].include?(name)
+
+        @erg_schema.validate_element(name, attrs, line_number)
+      end
+    end
   end
 end

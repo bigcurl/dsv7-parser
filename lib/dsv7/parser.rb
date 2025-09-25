@@ -37,6 +37,16 @@ module Dsv7
       enum
     end
 
+    # Streaming parser for Wettkampfergebnisliste (ERG).
+    # Same contract as the other parse_* methods, but expects
+    # FORMAT:Wettkampfergebnisliste;7; as the first effective line.
+    def self.parse_wettkampfergebnisliste(input, &block)
+      enum = Enumerator.new { |y| stream_list(input, y, 'Wettkampfergebnisliste') }
+      return enum.each(&block) if block_given?
+
+      enum
+    end
+
     class << self
       private
 

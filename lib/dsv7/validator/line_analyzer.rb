@@ -4,12 +4,14 @@ require_relative '../stream'
 require_relative 'line_analyzer_common'
 require_relative 'schemas/wk_schema'
 require_relative 'schemas/vml_schema'
+require_relative 'schemas/erg_schema'
 
 module Dsv7
   class Validator
     class LineAnalyzer
       include LineAnalyzerWk
       include LineAnalyzerVml
+      include LineAnalyzerErg
 
       def initialize(result)
         @result = result
@@ -17,10 +19,16 @@ module Dsv7
         @format_line_index = nil
         @dateiende_index = nil
         @after_dateiende_effective_line_number = nil
+        init_schemas_and_counters
+      end
+
+      def init_schemas_and_counters
         @wk_elements = Hash.new(0)
         @wk_schema = WkSchema.new(@result)
         @vml_elements = Hash.new(0)
         @vml_schema = VmlSchema.new(@result)
+        @erg_elements = Hash.new(0)
+        @erg_schema = ErgSchema.new(@result)
       end
 
       def process_line(line, line_number)
@@ -39,6 +47,7 @@ module Dsv7
         post_validate_positions
         validate_wk_list_elements if @result.list_type == 'Wettkampfdefinitionsliste'
         validate_vml_list_elements if @result.list_type == 'Vereinsmeldeliste'
+        validate_erg_list_elements if @result.list_type == 'Wettkampfergebnisliste'
       end
 
       private
@@ -98,8 +107,10 @@ module Dsv7
         require_semicolon(trimmed, line_number)
         track_wk_element(trimmed)
         track_vml_element(trimmed)
+        track_erg_element(trimmed)
         validate_wk_line(trimmed, line_number)
         validate_vml_line(trimmed, line_number)
+        validate_erg_line(trimmed, line_number)
       end
     end
   end
