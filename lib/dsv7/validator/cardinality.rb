@@ -127,5 +127,42 @@ module Dsv7
         end
       end
     end
+
+    # Validates Vereinsergebnisliste element cardinalities
+    class VrlCardinality
+      def initialize(result, elements)
+        @result = result
+        @elements = elements
+      end
+
+      def validate!
+        require_exactly_one(%w[ERZEUGER VERANSTALTUNG VERANSTALTER AUSRICHTER])
+        require_at_least_one(%w[ABSCHNITT WETTKAMPF WERTUNG VEREIN])
+      end
+
+      private
+
+      def require_exactly_one(elements)
+        elements.each do |el|
+          count = @elements[el]
+          if count.zero?
+            @result.add_error("Vereinsergebnisliste: missing required element '#{el}'")
+          elsif count != 1
+            @result.add_error(
+              "Vereinsergebnisliste: element '#{el}' occurs #{count} times (expected 1)"
+            )
+          end
+        end
+      end
+
+      def require_at_least_one(elements)
+        elements.each do |el|
+          count = @elements[el]
+          next if count >= 1
+
+          @result.add_error("Vereinsergebnisliste: missing required element '#{el}'")
+        end
+      end
+    end
   end
 end

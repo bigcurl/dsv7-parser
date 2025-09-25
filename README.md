@@ -140,13 +140,14 @@ ensure
 end
 ```
 
-## Parser (Streaming: WKDL, VML, ERG)
+## Parser (Streaming: WKDL, VML, ERG, VRL)
 
-The parser provides a streaming API for three list types:
+The parser provides a streaming API for four list types:
 
 - Wettkampfdefinitionsliste (WKDL): `Dsv7::Parser.parse_wettkampfdefinitionsliste(...)`
 - Vereinsmeldeliste (VML): `Dsv7::Parser.parse_vereinsmeldeliste(...)`
 - Wettkampfergebnisliste (ERG): `Dsv7::Parser.parse_wettkampfergebnisliste(...)`
+- Vereinsergebnisliste (VRL): `Dsv7::Parser.parse_vereinsergebnisliste(...)`
 
 It is tolerant and focuses on extracting elements efficiently; use the validator for strict checks.
 
@@ -264,11 +265,30 @@ Dsv7::Parser.parse_wettkampfergebnisliste(content) do |type, payload, line_numbe
 end
 ```
 
+VRL usage mirrors WKDL as well:
+
+```
+content = <<~DSV
+  FORMAT:Vereinsergebnisliste;7;
+  ERZEUGER:Soft;1.0;mail@example.com;
+  VERANSTALTUNG:Name;Ort;25;HANDZEIT;
+  ABSCHNITT:1;01.01.2024;10:00;N;
+  WETTKAMPF:1;A;1;;100;F;GL;M;SW;;;
+  VEREIN:SV Hansa Adorf;1234;17;GER;
+  DATEIENDE
+DSV
+
+Dsv7::Parser.parse_vereinsergebnisliste(content) do |type, payload, line_number|
+  # same :format, :element, :end semantics
+end
+```
+
 Errors and edge cases:
 
 - Raises `Dsv7::Parser::Error` if the first effective line is not a `FORMAT` line.
 - Raises `Dsv7::Parser::Error` if the list type does not match the parser method
-  (WKDL expects `Wettkampfdefinitionsliste`, VML expects `Vereinsmeldeliste`).
+  (WKDL expects `Wettkampfdefinitionsliste`, VML expects `Vereinsmeldeliste`,
+  ERG expects `Wettkampfergebnisliste`, VRL expects `Vereinsergebnisliste`).
 - Stops at `DATEIENDE`. Whitespace/comments after `DATEIENDE` are ignored by the parser (validator permits only comments/whitespace after it).
 
 ## Development

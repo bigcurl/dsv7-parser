@@ -102,5 +102,39 @@ module Dsv7
         @erg_schema.validate_element(name, attrs, line_number)
       end
     end
+
+    # Handles line-by-line checks for Vereinsergebnisliste
+    module LineAnalyzerVrl
+      def track_vrl_element(trimmed)
+        return unless @result.list_type == 'Vereinsergebnisliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, = pair
+        return if name == 'FORMAT'
+        return if name == 'DATEIENDE'
+
+        @vrl_elements[name] += 1
+      end
+
+      def validate_vrl_list_elements
+        return if @vrl_elements.empty?
+
+        VrlCardinality.new(@result, @vrl_elements).validate!
+      end
+
+      def validate_vrl_line(trimmed, line_number)
+        return unless @result.list_type == 'Vereinsergebnisliste'
+
+        pair = Dsv7::Lex.element(trimmed)
+        return unless pair
+
+        name, attrs = pair
+        return if %w[FORMAT DATEIENDE].include?(name)
+
+        @vrl_schema.validate_element(name, attrs, line_number)
+      end
+    end
   end
 end

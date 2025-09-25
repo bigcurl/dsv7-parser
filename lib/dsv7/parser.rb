@@ -47,6 +47,16 @@ module Dsv7
       enum
     end
 
+    # Streaming parser for Vereinsergebnisliste (VRL).
+    # Same contract as the other parse_* methods, but expects
+    # FORMAT:Vereinsergebnisliste;7; as the first effective line.
+    def self.parse_vereinsergebnisliste(input, &block)
+      enum = Enumerator.new { |y| stream_list(input, y, 'Vereinsergebnisliste') }
+      return enum.each(&block) if block_given?
+
+      enum
+    end
+
     class << self
       private
 

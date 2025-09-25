@@ -102,6 +102,16 @@ module Dsv7
           "(allowed: E, F, N) on line #{line_number}"
         )
       end
+
+      def check_nichtwertung_grund(name, idx, val, line_number, _opts = nil)
+        allowed = %w[DS NA AB AU ZU]
+        return if allowed.include?(val)
+
+        add_error(
+          "Element #{name}, attribute #{idx}: invalid Grund der Nichtwertung '#{val}' " \
+          "(allowed: #{allowed.join(', ')}) on line #{line_number}"
+        )
+      end
     end
   end
 end
