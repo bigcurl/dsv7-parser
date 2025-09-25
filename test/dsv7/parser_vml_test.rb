@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'minitest/autorun'
 require_relative '../test_helper'
+require 'minitest/autorun'
 require 'dsv7/parser'
 
 class Dsv7ParserVmlTest < Minitest::Test
