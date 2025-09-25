@@ -158,7 +158,11 @@ end
 
 ## Parser (Streaming: WKDL, VML, ERG, VRL)
 
-The parser provides a streaming API for four list types:
+The parser provides a streaming API via one generic entrypoint and four type-specific helpers.
+
+- Generic (auto-detects list type): `Dsv7::Parser.parse(...)`
+
+Type-specific helpers (enforce list type):
 
 - Wettkampfdefinitionsliste (WKDL): `Dsv7::Parser.parse_wettkampfdefinitionsliste(...)`
 - Vereinsmeldeliste (VML): `Dsv7::Parser.parse_vereinsmeldeliste(...)`
@@ -167,6 +171,22 @@ The parser provides a streaming API for four list types:
 
 It is tolerant and focuses on extracting elements efficiently; use the validator for strict checks.
 
+Generic example (auto-detect list type):
+
+```
+enum = Dsv7::Parser.parse('path/to/file.DSV7')
+enum.each do |type, payload, line_number|
+  case type
+  when :format
+    # payload = { list_type: 'Vereinsmeldeliste', version: '7' }
+  when :element
+    # payload = { name: 'ERZEUGER', attrs: [...] }
+  when :end
+    # reached DATEIENDE
+  end
+end
+```
+
 Key points:
 
 - Input: pass a file path, an IO, or a String with file content.
@@ -174,7 +194,7 @@ Key points:
 - Strips inline comments `(* ... *)` and scrubs invalid UTF‑8 in lines.
 - Accepts UTF‑8 with or without BOM (validator will still report BOM as an error).
 
-Basic example (block style, WKDL):
+Basic example (block style):
 
 ```
 require 'dsv7/parser'
@@ -188,7 +208,7 @@ content = <<~DSV
   DATEIENDE
 DSV
 
-Dsv7::Parser.parse_wettkampfdefinitionsliste(content) do |type, payload, line_number|
+Dsv7::Parser.parse(content) do |type, payload, line_number|
   case type
   when :format
     # { list_type: 'Wettkampfdefinitionsliste', version: '7' }
@@ -205,7 +225,7 @@ end
 Enumerator style:
 
 ```
-enum = Dsv7::Parser.parse_wettkampfdefinitionsliste('path/to/2002-03-10-Duisburg-Wk.DSV7')
+enum = Dsv7::Parser.parse('path/to/2002-03-10-Duisburg-Wk.DSV7')
 enum.each do |type, payload, line_number|
   # same triplets as the block example
 end
@@ -216,7 +236,7 @@ Building a simple structure (header + elements) from the stream:
 ```
 data = { format: nil, elements: [] }
 
-Dsv7::Parser.parse_wettkampfdefinitionsliste(content) do |type, payload, line_number|
+Dsv7::Parser.parse(content) do |type, payload, line_number|
   case type
   when :format
     data[:format] = payload # { list_type: 'Wettkampfdefinitionsliste', version: '7' }
@@ -236,7 +256,7 @@ Combining validation with parsing:
 ```
 result = Dsv7::Validator.validate('path/to/file.DSV7')
 if result.valid?
-  Dsv7::Parser.parse_wettkampfdefinitionsliste('path/to/file.DSV7') do |type, payload, line_number|
+  Dsv7::Parser.parse('path/to/file.DSV7') do |type, payload, line_number|
     # consume events
   end
 else
@@ -258,7 +278,7 @@ content = <<~DSV
   DATEIENDE
 DSV
 
-Dsv7::Parser.parse_vereinsmeldeliste(content) do |type, payload, line_number|
+Dsv7::Parser.parse(content) do |type, payload, line_number|
   # same :format, :element, :end semantics
 end
 ```
@@ -276,7 +296,7 @@ content = <<~DSV
   DATEIENDE
 DSV
 
-Dsv7::Parser.parse_wettkampfergebnisliste(content) do |type, payload, line_number|
+Dsv7::Parser.parse(content) do |type, payload, line_number|
   # same :format, :element, :end semantics
 end
 ```
@@ -294,7 +314,7 @@ content = <<~DSV
   DATEIENDE
 DSV
 
-Dsv7::Parser.parse_vereinsergebnisliste(content) do |type, payload, line_number|
+Dsv7::Parser.parse(content) do |type, payload, line_number|
   # same :format, :element, :end semantics
 end
 ```
@@ -334,7 +354,7 @@ DSV
 
 result = Dsv7::Validator.validate(content)
 if result.valid?
-  Dsv7::Parser.parse_wettkampfergebnisliste(content) do |type, payload, line_number|
+  Dsv7::Parser.parse(content) do |type, payload, line_number|
     case type
     when :format
       # { list_type: 'Wettkampfergebnisliste', version: '7' }
