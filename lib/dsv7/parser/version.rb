@@ -5,6 +5,6 @@ module Dsv7
     # Gem version for dsv7-parser
     # @since 7.0.0
     # @return [String]
-    VERSION = '7.0.1'
+    VERSION = '7.0.2'
   end
 end
