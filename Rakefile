@@ -3,7 +3,12 @@
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rubocop/rake_task'
-require 'rdoc/task'
+begin
+  require 'yard'
+  require 'yard/rake/yardoc_task'
+rescue LoadError
+  # YARD is a dev dependency; tasks are available when installed
+end
 
 Rake::TestTask.new(:test) do |t|
   t.libs << 'lib'
@@ -24,10 +29,34 @@ task lint: :rubocop
 desc 'CI: run tests and lint'
 task ci: %i[test lint]
 
-desc 'Generate RDoc documentation into doc/'
-RDoc::Task.new(:rdoc) do |rdoc|
-  rdoc.rdoc_dir = 'doc'
-  rdoc.main = 'README.md'
-  rdoc.title = 'dsv7-parser'
-  rdoc.rdoc_files.include('README.md', 'lib/**/*.rb')
+  if defined?(YARD)
+    desc 'Generate YARD documentation into doc/'
+    YARD::Rake::YardocTask.new(:yard) do |t|
+    # Parse only Ruby sources; README is provided via --readme for markup rendering
+    t.files = FileList['lib/**/*.rb']
+    t.options = [
+      '--no-cache',
+      '--markup', 'markdown',
+      '--markup-provider', 'kramdown',
+      '--readme', 'README.md',
+      '--hide-api', 'private'
+    ]
+  end
+  # Back-compat target for `rake doc`
+  task doc: :yard
+  # Generate full internal docs (includes @api private and private methods)
+  desc 'Generate full YARD docs (including private API) into doc-internal/'
+  YARD::Rake::YardocTask.new(:yard_full) do |t|
+    t.files = FileList['lib/**/*.rb']
+    t.options = [
+      '--no-cache',
+      '--markup', 'markdown',
+      '--markup-provider', 'kramdown',
+      '--readme', 'README.md',
+      '--private',
+      '-o', 'doc-internal'
+    ]
+  end
+  task 'docs:full' => :yard_full
+  task docs: :yard
 end

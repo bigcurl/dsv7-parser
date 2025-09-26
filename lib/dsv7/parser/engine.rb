@@ -1,11 +1,5 @@
 # frozen_string_literal: true
 
-# Internal streaming engine used by `Dsv7::Parser`.
-#
-# Converts an input (path/IO/String) into a stream of parser events. It
-# performs the same line normalization as the validator (via Stream/IoUtil),
-# strips inline comments, and stops emitting at `DATEIENDE`.
-
 require 'stringio'
 require_relative '../stream'
 require_relative '../lex'
@@ -14,11 +8,21 @@ require_relative 'io_util'
 module Dsv7
   module Parser
     # Internal engine that implements the streaming mechanics.
+    ##
+    # Internal streaming engine used by {Dsv7::Parser}.
+    #
+    # Converts an input (path/IO/String) into a stream of parser events. It
+    # performs the same line normalization as the validator (via Stream/IoUtil),
+    # strips inline comments, and stops emitting at `DATEIENDE`.
+    #
+    # @api private
     class Engine
+      # @api private
       def self.stream_any(input, emitter)
         new(input, emitter).stream_any
       end
 
+      # @api private
       def self.stream_list(input, emitter, expected_list_type)
         new(input, emitter).stream_list(expected_list_type)
       end

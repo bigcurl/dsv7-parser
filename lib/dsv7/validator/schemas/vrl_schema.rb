@@ -8,6 +8,8 @@ module Dsv7
     # Validates Vereinsergebnisliste attribute counts and datatypes.
     # Accepts synonymous element names found in the wild
     # (e.g., STAFFELERGEBNIS/STERGEBNIS).
+    #
+    # @api private
     class VrlSchema < SchemaBase
       include WkTypeChecks
 

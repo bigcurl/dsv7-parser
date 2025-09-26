@@ -1,13 +1,5 @@
 # frozen_string_literal: true
 
-# List‑specific analyzer mixins
-#
-# These modules encapsulate per‑list tracking and validation methods used by
-# LineAnalyzer. Each provides three responsibilities for its list type:
-# - track_*_element: counts element occurrences for cardinality checks
-# - validate_*_list_elements: validates the observed counts at finish
-# - validate_*_line: validates a single element’s attributes via the schema
-
 require_relative '../lex'
 require_relative 'cardinality'
 
@@ -15,6 +7,17 @@ module Dsv7
   class Validator
     # Handles line-by-line structural checks for WKDL-specific logic
     module LineAnalyzerWk
+      ##
+      # List‑specific analyzer mixins.
+      #
+      # These modules encapsulate per‑list tracking and validation methods used by
+      # {Dsv7::Validator::LineAnalyzer}. Each provides three responsibilities for its list type:
+      # - track_*_element: counts element occurrences for cardinality checks
+      # - validate_*_list_elements: validates the observed counts at finish
+      # - validate_*_line: validates a single element’s attributes via the schema
+      #
+      # @api private
+
       private
 
       def track_wk_element(trimmed)
@@ -49,6 +52,8 @@ module Dsv7
 
     # Handles line-by-line structural checks for VML-specific logic
     module LineAnalyzerVml
+      # @api private
+
       private
 
       def track_vml_element(trimmed)
@@ -83,6 +88,8 @@ module Dsv7
 
     # Handles line-by-line checks for Wettkampfergebnisliste
     module LineAnalyzerErg
+      # @api private
+
       private
 
       def track_erg_element(trimmed)
@@ -119,6 +126,8 @@ module Dsv7
 
     # Handles line-by-line checks for Vereinsergebnisliste
     module LineAnalyzerVrl
+      # @api private
+
       private
 
       def track_vrl_element(trimmed)

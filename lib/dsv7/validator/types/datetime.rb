@@ -1,17 +1,22 @@
 # frozen_string_literal: true
 
-# Date and time datatype checks.
-#
-# Enforces textual formats before validating value ranges:
-# - Datum:    TT.MM.JJJJ (validated via Date.strptime)
-# - Uhrzeit:  HH:MM      (0..23, 0..59)
-# - Zeit:     HH:MM:SS,hh (0..23, 0..59, 0..59, 0..99)
-
 require 'date'
 
 module Dsv7
   class Validator
+    ##
+    # Date and time datatype checks.
+    #
+    # Enforces textual formats before validating value ranges:
+    # - Datum:    TT.MM.JJJJ (validated via Date.strptime)
+    # - Uhrzeit:  HH:MM      (0..23, 0..59)
+    # - Zeit:     HH:MM:SS,hh (0..23, 0..59, 0..59, 0..99)
+    #
+    # @see specification/dsv7/dsv7_specification.md Date/time formats
+    # @api private
     module WkTypeChecksDateTime
+      private
+
       def check_datum(name, idx, val, line_number, _opts = nil)
         return add_error(datum_format_error(name, idx, val, line_number)) unless
           val.match?(/^\d{2}\.\d{2}\.\d{4}$/)

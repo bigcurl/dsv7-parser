@@ -9,6 +9,8 @@ module Dsv7
     #
     # The `SCHEMAS` constant defines the exact attribute counts and types per
     # element according to the current spec interpretation.
+    #
+    # @api private
     class WkSchema < SchemaBase
       include WkTypeChecks
 
@@ -51,6 +53,8 @@ module Dsv7
         # Intentionally omitting PFLICHTZEIT for now (spec examples appear inconsistent)
         'MELDEGELD' => [[:meldegeld_typ, true], [:betrag, true], [:zahl, false]]
       }.freeze
+
+      private
 
       def validate_cross_rules(name, attrs, line_number)
         return unless name == 'MELDEGELD'

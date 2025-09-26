@@ -1,13 +1,18 @@
 # frozen_string_literal: true
 
-# Enum/group checks (part 1): Bahnlänge, Zeitmessung, Land, etc.
-#
-# These normalize expectations found in the spec and examples and produce
-# actionable error messages that include allowed values.
-
 module Dsv7
   class Validator
+    ##
+    # Enum/group checks (part 1): Bahnlänge, Zeitmessung, Land, etc.
+    #
+    # These normalize expectations found in the spec and examples and produce
+    # actionable error messages that include allowed values.
+    #
+    # @see specification/dsv7/dsv7_specification.md Enumerations overview
+    # @api private
     module WkTypeChecksEnums1
+      private
+
       def check_bahnl(name, idx, val, line_number, _opts = nil)
         allowed = %w[16 20 25 33 50 FW X]
         return if allowed.include?(val)

@@ -1,17 +1,5 @@
 # frozen_string_literal: true
 
-# Core validation pipeline
-#
-# Implements the IO/line streaming for the validator:
-# - puts IO in binary mode and detects BOM
-# - normalizes lines to UTF‑8 and tracks CRLF presence
-# - strips inline comments and delegates per‑line logic to LineAnalyzer
-# - adds a filename warning if the provided path does not match the guidance
-#
-# Notes for maintainers
-# - Keep this class side‑effect free beyond writing to `Result`.
-# - Avoid accumulating state; process line‑by‑line to preserve streaming.
-
 require_relative '../stream'
 require_relative '../lex'
 require_relative 'line_analyzer'
@@ -19,12 +7,30 @@ require_relative 'line_analyzer'
 module Dsv7
   class Validator
     # Core pipeline for validator: encoding + line parsing
+    ##
+    # Core validation pipeline.
+    #
+    # Implements the IO/line streaming for the validator:
+    # - puts IO in binary mode and detects BOM
+    # - normalizes lines to UTF‑8 and tracks CRLF presence
+    # - strips inline comments and delegates per‑line logic to LineAnalyzer
+    # - adds a filename warning if the provided path does not match the guidance
+    #
+    # Notes for maintainers
+    # - Keep this class side‑effect free beyond writing to `Result`.
+    # - Avoid accumulating state; process line‑by‑line to preserve streaming.
+    #
+    # @api private
     class Core
+      # @param result [Dsv7::Validator::Result]
+      # @param filename [String, nil]
       def initialize(result, filename)
         @result = result
         @filename = filename
       end
 
+      # @param io [IO]
+      # @return [Dsv7::Validator::Result]
       def call_io(io)
         Dsv7::Stream.binmode_if_possible(io)
         check_bom_and_rewind(io)

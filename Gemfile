@@ -12,4 +12,8 @@ end
 
 group :development do
   gem 'rubocop', require: false
+  # YARD is used for generating API documentation
+  gem 'yard', require: false
+  # Kramdown provides robust Markdown rendering for YARD
+  gem 'kramdown', require: false
 end

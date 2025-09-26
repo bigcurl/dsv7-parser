@@ -1,13 +1,18 @@
 # frozen_string_literal: true
 
-# Enum/group checks (part 2): Technik, Ausübung, Geschlecht, Wertungstyp,
-# JG/AK, Meldegeldtypen, Reaktionsart, Nachtragskennzeichen, u. a.
-#
-# Keep allowed lists centralized here for clarity and reuse across schemas.
-
 module Dsv7
   class Validator
+    ##
+    # Enum/group checks (part 2): Technik, Ausübung, Geschlecht, Wertungstyp,
+    # JG/AK, Meldegeldtypen, Reaktionsart, Nachtragskennzeichen, u. a.
+    #
+    # Keep allowed lists centralized here for clarity and reuse across schemas.
+    #
+    # @see specification/dsv7/dsv7_specification.md Enumerations overview
+    # @api private
     module WkTypeChecksEnums2
+      private
+
       def check_technik(name, idx, val, line_number, _opts = nil)
         return if %w[F R B S L X].include?(val)
 

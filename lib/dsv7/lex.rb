@@ -1,18 +1,22 @@
 # frozen_string_literal: true
 
-# Lexical helpers for simple DSV7 tokens.
-#
-# - `parse_format(line)` extracts the list type and version from an exact
-#   `FORMAT:<Listentyp>;<Version>;` line.
-# - `element(content)` splits an element line into its name and attributes.
-#
-# These functions are intentionally minimal and do not perform semantic checks.
-
 module Dsv7
+  ##
+  # Lexical helpers for simple DSV7 tokens.
+  #
+  # - {parse_format} extracts the list type and version from an exact
+  #   `FORMAT:<Listentyp>;<Version>;` line.
+  # - {element} splits an element line into its name and attributes.
+  #
+  # These functions are intentionally minimal and do not perform semantic checks.
+  #
+  # @api private
   module Lex
     module_function
 
-    # Parses a FORMAT line. Returns [list_type, version] or nil if not a FORMAT line.
+    # Parses a FORMAT line.
+    # @param line [String]
+    # @return [Array<String>, nil] Pair of [list_type, version] or nil if not a FORMAT line
     def parse_format(line)
       m = line.match(/^FORMAT:([^;]+);([^;]+);$/)
       return nil unless m
@@ -21,7 +25,8 @@ module Dsv7
     end
 
     # Splits an element content line into name and attributes.
-    # Returns [name, attrs] or nil if the line is not an element line.
+    # @param content [String]
+    # @return [Array, nil] Tuple `[name, attrs]` or nil if the line is not an element line
     def element(content)
       return nil unless content.include?(':')
 

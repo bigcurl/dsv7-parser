@@ -1,12 +1,5 @@
 # frozen_string_literal: true
 
-# Streaming line analyzer
-#
-# Orchestrates validation once lines have been sanitized and comments stripped.
-# Tracks the first effective FORMAT line, enforces the final DATEIENDE, and
-# dispatches element lines to list‑specific schema/type checks and cardinality
-# tracking. All findings are written into the shared `Result` instance.
-
 require_relative '../stream'
 require_relative 'line_analyzer_common'
 require_relative 'schemas/wk_schema'
@@ -16,12 +9,22 @@ require_relative 'schemas/vrl_schema'
 
 module Dsv7
   class Validator
+    ##
+    # Streaming line analyzer.
+    #
+    # Orchestrates validation once lines have been sanitized and comments stripped.
+    # Tracks the first effective FORMAT line, enforces the final DATEIENDE, and
+    # dispatches element lines to list‑specific schema/type checks and cardinality
+    # tracking. All findings are written into the shared {Dsv7::Validator::Result} instance.
+    #
+    # @api private
     class LineAnalyzer
       include LineAnalyzerWk
       include LineAnalyzerVml
       include LineAnalyzerErg
       include LineAnalyzerVrl
 
+      # @param result [Dsv7::Validator::Result]
       def initialize(result)
         @result = result
         @effective_index = 0
@@ -31,6 +34,7 @@ module Dsv7
         init_schemas_and_counters
       end
 
+      # Initialize schemas and element counters used during streaming.
       def init_schemas_and_counters
         @wk_elements = Hash.new(0)
         @wk_schema = WkSchema.new(@result)
@@ -42,9 +46,13 @@ module Dsv7
         @vrl_schema = VrlSchema.new(@result)
       end
 
+      # Process a raw input line with its 1-based line number.
+      # @param line [String]
+      # @param line_number [Integer]
+      # @return [void]
       def process_line(line, line_number)
         check_comment_balance(line, line_number)
-        trimmed = strip_inline_comment(line)
+        trimmed = Dsv7::Stream.strip_inline_comment(line).strip
         return if trimmed.empty?
 
         @effective_index += 1
@@ -54,6 +62,8 @@ module Dsv7
         handle_content_line(trimmed, line_number)
       end
 
+      # Finalize the analysis and run post/summary checks.
+      # @return [void]
       def finish
         post_validate_positions
         validate_wk_list_elements if @result.list_type == 'Wettkampfdefinitionsliste'
@@ -63,6 +73,9 @@ module Dsv7
       end
 
       private
+
+      # Internal helper to set up schemas and counters
+      private :init_schemas_and_counters
 
       def check_comment_balance(line, line_number)
         return unless line.include?('(*') || line.include?('*)')
@@ -77,10 +90,6 @@ module Dsv7
       def handle_first_effective(trimmed, line_number)
         @format_line_index = line_number
         check_format_line(trimmed, line_number)
-      end
-
-      def strip_inline_comment(line)
-        Dsv7::Stream.strip_inline_comment(line).strip
       end
 
       def check_format_line(trimmed, line_number)
@@ -143,8 +152,6 @@ module Dsv7
         validate_erg_line(trimmed, line_number)
         validate_vrl_line(trimmed, line_number)
       end
-      # Ensure setup helper is not part of the public API
-      private :init_schemas_and_counters
     end
   end
 end

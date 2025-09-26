@@ -14,18 +14,18 @@ Requirements
 
 Basic envelope checks plus element validation for all four list types (WKDL, VML, ERG, VRL) are available via one entrypoint:
 
-```
+~~~
 require 'dsv7/parser'
 
 # Pass a path, IO, or a String with file content
 result = Dsv7::Validator.validate('path/to/file.DSV7')
 
-puts "valid?     #{result.valid?}"
-puts "list_type: #{result.list_type}"
-puts "version:   #{result.version}"
-puts "errors:    #{result.errors.inspect}"
-puts "warnings:  #{result.warnings.inspect}"
-```
+puts 'valid?     ' + result.valid?.to_s
+puts 'list_type: ' + result.list_type.to_s
+puts 'version:   ' + result.version.to_s
+puts 'errors:    ' + result.errors.inspect
+puts 'warnings:  ' + result.warnings.inspect
+~~~
 
 Accepted inputs:
 
@@ -49,7 +49,7 @@ Filename guidance (when validating by path):
 
 Minimal example (generic list type):
 
-```
+~~~
 content = <<~DSV
   FORMAT:Vereinsmeldeliste;7;
   DATA;ok
@@ -58,11 +58,11 @@ DSV
 
 result = Dsv7::Validator.validate(content)
 puts result.valid? # => true
-```
+~~~
 
 Wettkampfdefinitionsliste validation (cardinality + attribute types):
 
-```
+~~~
 wkdl = <<~DSV
   FORMAT:Wettkampfdefinitionsliste;7;
   ERZEUGER:Soft;1.0;mail@example.com;
@@ -83,11 +83,11 @@ wk_result = Dsv7::Validator.validate(wkdl)
 puts wk_result.valid?      # => true
 puts wk_result.errors      # => []
 puts wk_result.warnings    # => []
-```
+~~~
 
 Vereinsmeldeliste validation (cardinality + attribute types):
 
-```
+~~~
 vml = <<~DSV
   FORMAT:Vereinsmeldeliste;7;
   ERZEUGER:Soft;1.0;mail@example.com;
@@ -101,7 +101,7 @@ DSV
 
 vml_result = Dsv7::Validator.validate(vml)
 puts vml_result.valid?    # => true
-```
+~~~
 
 ## Validated elements
 
@@ -185,7 +185,7 @@ VRL (Vereinsergebnisliste)
 
 Common error and warning examples:
 
-```
+~~~
 # 1) Unknown list type and missing DATEIENDE
 bad = "FORMAT:Unbekannt;7;\n"
 r = Dsv7::Validator.validate(bad)
@@ -218,7 +218,7 @@ begin
 ensure
   File.delete('tmp/badname.txt')
 end
-```
+~~~
 
 ## Parser (Streaming: WKDL, VML, ERG, VRL)
 
@@ -237,7 +237,7 @@ It is tolerant and focuses on extracting elements efficiently; use the validator
 
 Generic example (auto-detect list type):
 
-```
+~~~
 enum = Dsv7::Parser.parse('path/to/file.DSV7')
 enum.each do |type, payload, line_number|
   case type
@@ -249,7 +249,7 @@ enum.each do |type, payload, line_number|
     # reached DATEIENDE
   end
 end
-```
+~~~
 
 Key points:
 
@@ -260,7 +260,7 @@ Key points:
 
 Basic example (block style):
 
-```
+~~~
 require 'dsv7/parser'
 
 content = <<~DSV
@@ -284,20 +284,20 @@ Dsv7::Parser.parse(content) do |type, payload, line_number|
     p [:end, line_number]
   end
 end
-```
+~~~
 
 Enumerator style:
 
-```
+~~~
 enum = Dsv7::Parser.parse('path/to/2002-03-10-Duisburg-Wk.DSV7')
 enum.each do |type, payload, line_number|
   # same triplets as the block example
 end
-```
+~~~
 
 Building a simple structure (header + elements) from the stream:
 
-```
+~~~
 data = { format: nil, elements: [] }
 
 Dsv7::Parser.parse(content) do |type, payload, line_number|
@@ -313,24 +313,24 @@ end
 wettkaempfe = data[:elements]
   .select { |e| e[:name] == 'WETTKAMPF' }
   .map { |e| e[:attrs] } # arrays of attributes per row
-```
+~~~
 
 Combining validation with parsing:
 
-```
+~~~
 result = Dsv7::Validator.validate('path/to/file.DSV7')
 if result.valid?
   Dsv7::Parser.parse('path/to/file.DSV7') do |type, payload, line_number|
     # consume events
   end
 else
-  warn "Invalid DSV7: #{result.errors.join('; ')}"
+  warn 'Invalid DSV7: ' + result.errors.join('; ')
 end
-```
+~~~
 
 VML usage mirrors WKDL:
 
-```
+~~~
 content = <<~DSV
   FORMAT:Vereinsmeldeliste;7;
   ERZEUGER:Soft;1.0;mail@example.com;
@@ -345,11 +345,11 @@ DSV
 Dsv7::Parser.parse(content) do |type, payload, line_number|
   # same :format, :element, :end semantics
 end
-```
+~~~
 
 ERG usage mirrors WKDL as well:
 
-```
+~~~
 content = <<~DSV
   FORMAT:Wettkampfergebnisliste;7;
   ERZEUGER:Soft;1.0;mail@example.com;
@@ -363,11 +363,11 @@ DSV
 Dsv7::Parser.parse(content) do |type, payload, line_number|
   # same :format, :element, :end semantics
 end
-```
+~~~
 
 VRL usage mirrors WKDL as well:
 
-```
+~~~
 content = <<~DSV
   FORMAT:Vereinsergebnisliste;7;
   ERZEUGER:Soft;1.0;mail@example.com;
@@ -381,7 +381,7 @@ DSV
 Dsv7::Parser.parse(content) do |type, payload, line_number|
   # same :format, :element, :end semantics
 end
-```
+~~~
 
 Errors and edge cases:
 
@@ -396,11 +396,22 @@ Errors and edge cases:
 - Tests use Minitest and live under `test/dsv7/`.
 - Version is defined in `lib/dsv7/parser/version.rb`.
 
+## API Documentation (YARD)
+
+- Hosted docs (Rubydoc): https://www.rubydoc.info/gems/dsv7-parser
+- Generate locally: `bundle install && bundle exec rake yard`
+- Output is written to `doc/`.
+
+Notes:
+
+- Public API is focused on `Dsv7::Validator.validate` and the `Dsv7::Parser.parse*` helpers.
+- Internal helpers are annotated with `@api private` and hidden from the default docs.
+
 ## Compact ERG Example
 
 Minimal Wettkampfergebnisliste validation and parsing in one go:
 
-```
+~~~
 require 'dsv7/parser'
 
 content = <<~DSV
@@ -429,6 +440,6 @@ if result.valid?
     end
   end
 else
-  warn "Invalid ERG: #{result.errors.join('; ')}"
+  warn 'Invalid ERG: ' + result.errors.join('; ')
 end
-```
+~~~
