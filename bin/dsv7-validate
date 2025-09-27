@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+
+$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
+require 'dsv7/validator'
+
+module Dsv7
+  module CLI
+    class Validate
+      def initialize(argv, stdout: $stdout, stderr: $stderr, stdin: $stdin)
+        @argv = argv
+        @stdout = stdout
+        @stderr = stderr
+        @stdin = stdin
+      end
+
+      def run
+        parser = build_option_parser
+        begin
+          parser.parse!(@argv)
+        rescue OptionParser::InvalidOption => e
+          @stderr.puts(e.message)
+          usage(parser)
+          return 1
+        end
+
+        input = determine_input(parser)
+        return 1 unless input
+
+        result = Dsv7::Validator.validate(input)
+        result.errors.each { |message| @stdout.puts("ERROR: #{message}") }
+        result.warnings.each { |message| @stdout.puts("WARNING: #{message}") }
+        result.valid? ? 0 : 1
+      end
+
+      private
+
+      def determine_input(parser)
+        case @argv.length
+        when 0
+          if @stdin.tty?
+            usage(parser)
+            nil
+          else
+            @stdin.binmode
+            @stdin
+          end
+        when 1
+          arg = @argv.first
+          if arg == '-'
+            @stdin.binmode
+            @stdin
+          else
+            arg
+          end
+        else
+          usage(parser)
+          nil
+        end
+      end
+
+      def build_option_parser
+        OptionParser.new do |opts|
+          opts.banner = 'Usage: dsv7-validate [PATH | -]'
+          opts.on('-h', '--help', 'Show this help message') do
+            @stdout.puts(opts)
+            exit 0
+          end
+        end
+      end
+
+      def usage(parser)
+        @stderr.puts(parser)
+      end
+    end
+  end
+end
+
+exit Dsv7::CLI::Validate.new(ARGV).run

@@ -29,9 +29,9 @@ task lint: :rubocop
 desc 'CI: run tests and lint'
 task ci: %i[test lint]
 
-  if defined?(YARD)
-    desc 'Generate YARD documentation into doc/'
-    YARD::Rake::YardocTask.new(:yard) do |t|
+if defined?(YARD)
+  desc 'Generate YARD documentation into doc/'
+  YARD::Rake::YardocTask.new(:yard) do |t|
     # Parse only Ruby sources; README is provided via --readme for markup rendering
     t.files = FileList['lib/**/*.rb']
     t.options = [

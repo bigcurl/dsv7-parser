@@ -26,6 +26,8 @@ Gem::Specification.new do |spec|
   end
 
   spec.require_paths = ['lib']
+  spec.bindir = 'bin'
+  spec.executables = Dir.children('bin').sort if Dir.exist?('bin')
 
   # Include top-level docs in packaged RDoc
   spec.extra_rdoc_files = ['README.md', 'LICENSE']
